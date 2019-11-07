@@ -1,0 +1,10 @@
+
+
+# Filestypes 
+**/.DS_Store
+**/.ipynb_checkpoints
+**/.pyc 
+
+# Folders
+**/data
+**/__pycache__
