@@ -25,12 +25,12 @@ tf.compat.v1.disable_v2_behavior()
 NUM_CHANNELS = 3  # RGB images
 PIXEL_DEPTH = 255
 NUM_LABELS = 2
-TRAINING_SIZE = 20
+TRAINING_SIZE = 100
 VALIDATION_SIZE = 5  # Size of the validation set.
 SEED = 66478  # Set to None for random seed.
 BATCH_SIZE = 16  # 64
 NUM_EPOCHS = 100
-RESTORE_MODEL = False  # If True, restore existing model instead of training a new one
+RESTORE_MODEL = True  # If True, restore existing model instead of training a new one
 RECORDING_STEP = 0
 
 # Set image patch size in pixels
@@ -318,6 +318,19 @@ def main(argv=None):  # pylint: disable=unused-argument
 
         return cimg
 
+    def get_prediction_without_groundtruth(filename, image_idx):
+
+        imageid = "satImage_%.3d" % image_idx
+        image_filename = filename + imageid + ".png"
+        img = mpimg.imread(image_filename)
+
+        img_prediction = get_prediction(img)
+        cimg = concatenate_images(img, img_prediction)
+        cimg = cimg[ :, 400:800 ,:]
+
+        return cimg
+
+    
     # Get prediction overlaid on the original image for given input file
     def get_prediction_with_overlay(filename, image_idx):
 
@@ -362,10 +375,10 @@ def main(argv=None):  # pylint: disable=unused-argument
 
         # Uncomment these lines to check the size of each layer
         # print 'data ' + str(data.get_shape())
-        # print 'conv ' + str(conv.get_shape())
-        # print 'relu ' + str(relu.get_shape())
-        # print 'pool ' + str(pool.get_shape())
-        # print 'pool2 ' + str(pool2.get_shape())
+        #print ('conv ' + str(conv.get_shape()))
+        #print ('relu ' + str(relu.get_shape()))
+        #print ('pool ' + str(pool.get_shape()))
+        #print ('pool2 ' + str(pool2.get_shape()))
 
         # Reshape the feature map cuboid into a 2D matrix to feed it to the
         # fully connected layers.
@@ -516,6 +529,7 @@ def main(argv=None):  # pylint: disable=unused-argument
 
         print("Running prediction on training set")
         prediction_training_dir = "predictions_training/"
+        new_training_dir = "data/new_training/images/"
         if not os.path.isdir(prediction_training_dir):
             os.mkdir(prediction_training_dir)
         for i in range(1, TRAINING_SIZE + 1):
@@ -523,6 +537,9 @@ def main(argv=None):  # pylint: disable=unused-argument
             Image.fromarray(pimg).save(prediction_training_dir + "prediction_" + str(i) + ".png")
             oimg = get_prediction_with_overlay(train_data_filename, i)
             oimg.save(prediction_training_dir + "overlay_" + str(i) + ".png")
+
+            timg = get_prediction_without_groundtruth(train_data_filename, i)
+            Image.fromarray(timg).save(new_training_dir + "train_" + str(i) + ".png")
 
 
 if __name__ == '__main__':
