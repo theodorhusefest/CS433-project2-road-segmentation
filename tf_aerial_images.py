@@ -17,7 +17,10 @@ import code
 import tensorflow.python.platform
 
 import numpy
+#import tensorflow as tf
+
 import tensorflow as tf
+tf.compat.v1.disable_v2_behavior()
 
 NUM_CHANNELS = 3  # RGB images
 PIXEL_DEPTH = 255
@@ -35,10 +38,10 @@ RECORDING_STEP = 0
 # image size should be an integer multiple of this number!
 IMG_PATCH_SIZE = 16
 
-tf.app.flags.DEFINE_string('train_dir', '/tmp/segment_aerial_images',
+tf.compat.v1.flags.DEFINE_string('train_dir', '/tmp/segment_aerial_images',
                            """Directory where to write event logs """
                            """and checkpoint.""")
-FLAGS = tf.app.flags.FLAGS
+FLAGS = tf.compat.v1.flags.FLAGS
 
 
 # Extract patches from a given image
@@ -195,7 +198,7 @@ def make_img_overlay(img, predicted_img):
 
 def main(argv=None):  # pylint: disable=unused-argument
 
-    data_dir = 'training/'
+    data_dir = 'data/training/'
     train_data_filename = data_dir + 'images/'
     train_labels_filename = data_dir + 'groundtruth/'
 
@@ -238,10 +241,10 @@ def main(argv=None):  # pylint: disable=unused-argument
     # This is where training samples and labels are fed to the graph.
     # These placeholder nodes will be fed a batch of training data at each
     # training step using the {feed_dict} argument to the Run() call below.
-    train_data_node = tf.placeholder(
+    train_data_node = tf.compat.v1.placeholder(
         tf.float32,
         shape=(BATCH_SIZE, IMG_PATCH_SIZE, IMG_PATCH_SIZE, NUM_CHANNELS))
-    train_labels_node = tf.placeholder(tf.float32,
+    train_labels_node = tf.compat.v1.placeholder(tf.float32,
                                        shape=(BATCH_SIZE, NUM_LABELS))
     train_all_data_node = tf.constant(train_data)
 
@@ -342,7 +345,7 @@ def main(argv=None):  # pylint: disable=unused-argument
         relu = tf.nn.relu(tf.nn.bias_add(conv, conv1_biases))
         # Max pooling. The kernel size spec {ksize} also follows the layout of
         # the data. Here we have a pooling window of 2, and a stride of 2.
-        pool = tf.nn.max_pool(relu,
+        pool = tf.nn.max_pool2d(relu,
                               ksize=[1, 2, 2, 1],
                               strides=[1, 2, 2, 1],
                               padding='SAME')
@@ -352,7 +355,7 @@ def main(argv=None):  # pylint: disable=unused-argument
                              strides=[1, 1, 1, 1],
                              padding='SAME')
         relu2 = tf.nn.relu(tf.nn.bias_add(conv2, conv2_biases))
-        pool2 = tf.nn.max_pool(relu2,
+        pool2 = tf.nn.max_pool2d(relu2,
                                ksize=[1, 2, 2, 1],
                                strides=[1, 2, 2, 1],
                                padding='SAME')
@@ -382,15 +385,15 @@ def main(argv=None):  # pylint: disable=unused-argument
         if train:
             summary_id = '_0'
             s_data = get_image_summary(data)
-            tf.summary.image('summary_data' + summary_id, s_data)
+            tf.compat.v1.summary.image('summary_data' + summary_id, s_data)
             s_conv = get_image_summary(conv)
-            tf.summary.image('summary_conv' + summary_id, s_conv)
+            tf.compat.v1.summary.image('summary_conv' + summary_id, s_conv)
             s_pool = get_image_summary(pool)
-            tf.summary.image('summary_pool' + summary_id, s_pool)
+            tf.compat.v1.summary.image('summary_pool' + summary_id, s_pool)
             s_conv2 = get_image_summary(conv2)
-            tf.summary.image('summary_conv2' + summary_id, s_conv2)
+            tf.compat.v1.summary.image('summary_conv2' + summary_id, s_conv2)
             s_pool2 = get_image_summary(pool2)
-            tf.summary.image('summary_pool2' + summary_id, s_pool2)
+            tf.compat.v1.summary.image('summary_pool2' + summary_id, s_pool2)
         return out
 
     # Training computation: logits + cross-entropy loss.
@@ -401,16 +404,16 @@ def main(argv=None):  # pylint: disable=unused-argument
         tf.nn.softmax_cross_entropy_with_logits_v2(labels=train_labels_node,
                                                    logits=logits))
 
-    tf.summary.scalar('loss', loss)
+    tf.compat.v1.summary.scalar('loss', loss)
 
     all_params_node = [conv1_weights, conv1_biases, conv2_weights, conv2_biases, fc1_weights, fc1_biases, fc2_weights, fc2_biases]
     all_params_names = ['conv1_weights', 'conv1_biases', 'conv2_weights', 'conv2_biases', 'fc1_weights', 'fc1_biases', 'fc2_weights', 'fc2_biases']
     all_grads_node = tf.gradients(loss, all_params_node)
     all_grad_norms_node = []
     for i in range(0, len(all_grads_node)):
-        norm_grad_i = tf.global_norm([all_grads_node[i]])
+        norm_grad_i = tf.linalg.global_norm([all_grads_node[i]])
         all_grad_norms_node.append(norm_grad_i)
-        tf.summary.scalar(all_params_names[i], norm_grad_i)
+        tf.compat.v1.summary.scalar(all_params_names[i], norm_grad_i)
 
     # L2 regularization for the fully connected parameters.
     regularizers = (tf.nn.l2_loss(fc1_weights) + tf.nn.l2_loss(fc1_biases) +
@@ -429,7 +432,7 @@ def main(argv=None):  # pylint: disable=unused-argument
         0.95,                # Decay rate.
         staircase=True)
     # tf.scalar_summary('learning_rate', learning_rate)
-    tf.summary.scalar('learning_rate', learning_rate)
+    tf.compat.v1.summary.scalar('learning_rate', learning_rate)
 
     # Use simple momentum for the optimization.
     optimizer = tf.train.MomentumOptimizer(learning_rate,
@@ -523,4 +526,5 @@ def main(argv=None):  # pylint: disable=unused-argument
 
 
 if __name__ == '__main__':
-    tf.app.run()
+    main()
+    #tf.compat.v1.run()
