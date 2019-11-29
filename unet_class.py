@@ -7,8 +7,8 @@ import numpy as np
 
 os.environ['KMP_DUPLICATE_LIB_OK']='True' # Need this to work on Theos mac
 
-from keras.model import Model
-from keras.layer import Conv2D, MaxPool2D, UpSampling2D, Concatenate, Input, Dropout
+from keras.models import Model
+from keras.layers import Conv2D, MaxPool2D, UpSampling2D, Concatenate, Input, Dropout
 
 class UNET():
 
@@ -59,7 +59,7 @@ class UNET():
 
             conv = self.expand(conv, convs[i], filter_sizes[i])
 
-        outputs = Conv2D(1, 1, padding= 'same', activation='sigmoid')
+        outputs = Conv2D(1, 1, padding= 'same', activation='sigmoid')(conv)
 
         self.model = Model(inputs, outputs)
         print("Compiling model...")
@@ -79,7 +79,7 @@ class UNET():
 
     def expand(self, x, contract_conv, filter_size, kernel_size = 3, padding = 'same', strides = 1):
         up = UpSampling2D(size = (2, 2))(x)
-        concat = Concatenate()[up, contract_conv]
+        concat = Concatenate()([up, contract_conv])
 
         conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation='relu')(concat)
         conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation='relu')(conv)
@@ -98,10 +98,10 @@ class UNET():
             self.model.summary()
 
 
-    def train_model(self, epochs):
+    def train_model(self, epochs, batch_size):
         print()
         print('Training model')
-        self.model.fit(x= self.x_train, y = self.y_train,  validation_data =(self.x_test, self.y_test), epochs=epochs)
+        self.model.fit(x= self.x_train, y = self.y_train,  validation_data =(self.x_test, self.y_test), epochs=epochs, batch_size = batch_size)
 
 
     def save_weights(self, filename):
