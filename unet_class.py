@@ -110,3 +110,11 @@ class UNET():
         print()
         print('Saving Model')
         self.model.save_weights(filename)
+        
+    def load_weights(self, filename):
+        print()
+        print('Saving Model')
+        self.model.load_weights(filename)
+        
+    def predict(self):
+        
