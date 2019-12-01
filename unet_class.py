@@ -101,7 +101,9 @@ class UNET():
     def train_model(self, epochs, batch_size):
         print()
         print('Training model')
-        self.model.fit(x= self.x_train, y = self.y_train,  validation_data =(self.x_test, self.y_test), epochs=epochs, batch_size = batch_size)
+        self.model.fit(x= self.x_train, y = self.y_train,  
+                       validation_data =(self.x_test, self.y_test), 
+                       epochs=epochs, batch_size = batch_size)
 
 
     def save_weights(self, filename):
