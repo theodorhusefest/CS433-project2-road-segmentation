@@ -23,6 +23,12 @@ class UNET():
 
 
     def build_model(self):
+        """
+        Builds the model for a general number of layers.
+        Contains three phases, contracting, bottleneck and expansion.
+        """
+
+
         print('Building model with {} layers'.format(self.layers))
         filter_sizes = np.append(np.flip([int(self.IMAGE_SIZE/2**(i)) for i in range(self.layers)]), self.IMAGE_SIZE*2)
 
@@ -65,6 +71,15 @@ class UNET():
 
 
     def contract(self, x, filter_size, kernel_size = 3, padding = 'same', strides = 1, dropout= False, dropout_rate = 0.5):
+        """
+        Contracting phase of the model.
+        Consists of two layers with convoluton, before a before a pooling phase which reduces the dimentionality.
+        The last contraction before the bottleneck there is a dropout-phase.
+
+        params:
+            x: data to be contracted
+            filter_size: w
+        """
         conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation='relu')(x)
         conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation='relu')(conv)
         if dropout:
