@@ -1,16 +1,17 @@
 
+import os
 import numpy as np
 from src.helpers import load_image
-
+from skimage.transform import resize
 
 def shape_training_data(imgs, gt_imgs):
-    SIZE = (400, 400)
+    SIZE = (256, 256)
     n = len(imgs)
      
-    #imgs = [resize(img, SIZE) for img in imgs]
-    #gt_imgs = [resize(gt_img, SIZE) for gt_img in gt_imgs]
+    imgs = [resize(img, SIZE) for img in imgs]
+    gt_imgs = [resize(gt_img, SIZE) for gt_img in gt_imgs]
     
-    gt_imgs = [gt_imgs[i].reshape(400, 400, 1) for i in range(n)]
+    gt_imgs = [gt_imgs[i].reshape(256, 256, 1) for i in range(n)]
     gt_imgs = [np.around(gt_imgs[i]) for i in range(n)]
     
     return np.asarray(imgs), np.asarray(gt_imgs)
@@ -50,7 +51,7 @@ reload(unet_class)
 import unet_class
 
 
-unet = unet_class.UNET(layers = 1)
+unet = unet_class.UNET(image_shape = (256, 256, 3), layers = 1)
 
 
 unet.build_model()
@@ -61,7 +62,7 @@ unet.describe_model()
 
 epochs = 2
 batch_size = 2
-unet.train_model(x_tr, y_tr, x_te, y_te, epochs, batch_size)
+#unet.train_model(x_tr, y_tr, x_te, y_te, epochs, batch_size)
 
-
-unet.save_weights('UNET_1layer.h5')
+unet.save_model('model_1layer.h5')
+#unet.save_weights('UNET_1layer.h5')

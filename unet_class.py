@@ -31,7 +31,6 @@ class UNET():
 
         print('Building model with {} layers'.format(self.layers))
         filter_sizes = np.append(np.flip([int(self.IMAGE_SIZE/2**(i)) for i in range(self.layers)]), self.IMAGE_SIZE*2)
-
         print('Filtersizes being used in UNET: {}'.format(filter_sizes))
 
         inputs = Input(self.IMAGE_SHAPE)
@@ -44,7 +43,7 @@ class UNET():
 
             print('Bulding contraction layers at layer: {} and filtersize: {}'.format(i+1, filter_sizes[i]))
             if i == self.layers - 1: # If this is last iteration
-                conv, pool = self.contract(pool, filter_sizes[i], dropout= True, dropout_rate= self.dropout_rate)
+                conv, pool = self.contract(pool, filter_sizes[i], dropout= True)
             else:
                 conv, pool = self.contract(pool, filter_sizes[i], dropout= False)
             
@@ -62,6 +61,7 @@ class UNET():
 
             conv = self.expand(conv, convs[i], filter_sizes[i])
 
+        conv = Conv2D(2, 3, padding='same', activation='relu')(conv)
         outputs = Conv2D(1, 1, padding= 'same', activation='sigmoid')(conv)
 
         self.model = Model(inputs, outputs)
@@ -70,7 +70,7 @@ class UNET():
 
 
 
-    def contract(self, x, filter_size, kernel_size = 3, padding = 'same', strides = 1, dropout= False, dropout_rate = 0.5):
+    def contract(self, x, filter_size, kernel_size = 3, padding = 'same', strides = 1, dropout= False):
         """
         Contracting phase of the model.
         Consists of two layers with convoluton, before a before a pooling phase which reduces the dimentionality.
@@ -83,7 +83,7 @@ class UNET():
         conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation='relu')(x)
         conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation='relu')(conv)
         if dropout:
-            conv = Dropout(0.5)(conv)
+            conv = Dropout(self.dropout_rate)(conv)
             
         pool = MaxPool2D(pool_size = (2,2))(conv)
         
@@ -101,7 +101,8 @@ class UNET():
     def bottleneck(self, x, filter_size, kernel_size = 3, padding = 'same', strides = 1):
         conv = Conv2D(filter_size, kernel_size, padding= padding, strides= strides, activation= 'relu')(x)
         conv = Conv2D(filter_size, kernel_size, padding= padding, strides= strides, activation= 'relu')(conv)
-        return conv
+        conv = Dropout(self.dropout_rate)(conv)
+        return conv 
 
     def describe_model(self):
         if self.model == None:
@@ -120,9 +121,14 @@ class UNET():
 
     def save_weights(self, filename):
         print()
-        print('Saving Model')
+        print('Saving Weights')
         self.model.save_weights(filename)
         
+    def save_model(self, filename):
+        print()
+        print("Saving Model")
+        self.model.save(filename)
+
     def load_weights(self, filename):
         print()
         print('Loading Model')
