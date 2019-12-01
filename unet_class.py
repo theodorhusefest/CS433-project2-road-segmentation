@@ -46,7 +46,7 @@ class UNET():
             convs.append(conv)
 
         # Bottleneck
-        print('Building bottleneck at layer: {} and filtersize: {}'.format(i+1, filter_sizes[i]))
+        print('Building bottleneck at layer: {} and filtersize: {}'.format(self.layers, filter_sizes[-1]))
 
         conv = self.bottleneck(pool, filter_sizes[-1])
 
