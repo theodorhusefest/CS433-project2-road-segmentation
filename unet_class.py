@@ -12,17 +12,14 @@ from keras.layers import Conv2D, MaxPool2D, UpSampling2D, Concatenate, Input, Dr
 
 class UNET():
 
-    def __init__(self, x_train, y_train, x_test, y_test, layers = 2, dropout_rate = 0.5):
-        self.x_train = x_train
-        self.y_train = y_train
-        self.x_test = x_test
-        self.y_test = y_test
+    def __init__(self, image_shape = (400, 400, 3), layers = 2, dropout_rate = 0.5):
 
-        self.IMAGE_SIZE = x_train[0].shape[0]
-        self.IMAGE_SHAPE = x_train[0].shape
+        self.IMAGE_SIZE = image_shape[0]
+        self.IMAGE_SHAPE = image_shape
         self.layers = layers
         self.dropout_rate = dropout_rate
         self.model = None
+
 
 
     def build_model(self):
@@ -98,11 +95,11 @@ class UNET():
             self.model.summary()
 
 
-    def train_model(self, epochs, batch_size):
+    def train_model(self, x_train, y_train, x_val, y_val, epochs, batch_size):
         print()
         print('Training model')
-        self.model.fit(x= self.x_train, y = self.y_train,  
-                       validation_data =(self.x_test, self.y_test), 
+        self.model.fit(x= x_train, y = y_train,  
+                       validation_data =(x_val, y_val), 
                        epochs=epochs, batch_size = batch_size)
 
 
@@ -113,8 +110,10 @@ class UNET():
         
     def load_weights(self, filename):
         print()
-        print('Saving Model')
+        print('Loading Model')
         self.model.load_weights(filename)
         
-    def predict(self):
-        
+    def predict(self, x_test):
+        print()
+        print('Predicting on {} images'.format(x_test.shape[0]))
+        self.model.predict(x_test)
