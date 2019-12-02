@@ -4,6 +4,7 @@
 
 import os,sys
 import numpy as np
+from datetime import datetime
 
 os.environ['KMP_DUPLICATE_LIB_OK']='True' # Need this to work on Theos mac
 
@@ -119,15 +120,19 @@ class UNET():
                        epochs=epochs, batch_size = batch_size)
 
 
-    def save_weights(self, filename):
+    def train_generator(self, datagen, x_train, y_train, x_val, y_val, epochs, batch_size):
         print()
-        print('Saving Weights')
-        self.model.save_weights(filename)
-        
-    def save_model(self, filename):
+        print('Training using generator')
+        self.model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size),
+                                steps_per_epoch = len(x_train)/batch_size, epochs = epochs)
+
+        self.save_model()
+
+    def save_model(self, filename  = ''):
         print()
         print("Saving Model")
-        self.model.save(filename)
+        self.model.save('/models/model' + filename + datetime.now().strftime("%d_%H_%M_%S") + '.h5')
+        self.model.save_weights('/models/weights' + filename + datetime.now().strftime("%d_%H_%M_%S") + '.h5')
 
     def load_weights(self, filename):
         print()
