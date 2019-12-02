@@ -9,6 +9,7 @@ from datetime import datetime
 os.environ['KMP_DUPLICATE_LIB_OK']='True' # Need this to work on Theos mac
 
 from keras.models import Model
+from keras.metrics import categorical_accuracy
 from keras.layers import Conv2D, MaxPool2D, UpSampling2D, Concatenate, Input, Dropout
 
 class UNET():
@@ -63,12 +64,12 @@ class UNET():
             conv = self.expand(conv, convs[i], filter_sizes[i])
 
         conv = Conv2D(2, 3, padding='same', activation='relu')(conv)
-        outputs = Conv2D(1, 1, padding= 'same', activation='sigmoid')(conv)
+        outputs = Conv2D(2, 1, padding= 'same', activation='sigmoid')(conv)
 
         self.model = Model(inputs, outputs)
         print("Compiling model...")
-        self.model.compile(optimizer='adam', loss = 'binary_crossentropy', metrics = ["acc"])
-
+        self.model.compile(optimizer='adam', loss = 'binary_crossentropy', metrics = ['accuracy'])
+        print("Model compiled.")
 
 
     def contract(self, x, filter_size, kernel_size = 3, padding = 'same', strides = 1, dropout= False):
@@ -131,15 +132,20 @@ class UNET():
     def save_model(self, filename  = ''):
         print()
         print("Saving Model")
-        self.model.save('/models/model' + filename + datetime.now().strftime("%d_%H_%M_%S") + '.h5')
-        self.model.save_weights('/models/weights' + filename + datetime.now().strftime("%d_%H_%M_%S") + '.h5')
+        self.model.save('./models/model' + filename + datetime.now().strftime("%d_%H.%M") + '.h5')
+        self.model.save_weights('./models/weights' + filename + datetime.now().strftime("%d_%H.%M") + '.h5')
 
-    def load_weights(self, filename):
+    def load_weights(self, model_filename, weights_filename):
         print()
         print('Loading Model')
-        self.model.load_weights(filename)
+        #self.model.load('./models/' + model_filename)
+        self.model.load_weights('./models/' + weights_filename)
+        
         
     def predict(self, x_test):
         print()
         print('Predicting on {} images'.format(x_test.shape[0]))
         self.model.predict(x_test)
+
+    def get_model(self):
+        return self.model
