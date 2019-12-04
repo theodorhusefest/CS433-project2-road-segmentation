@@ -8,13 +8,15 @@ from datetime import datetime
 
 os.environ['KMP_DUPLICATE_LIB_OK']='True' # Need this to work on Theos mac
 
+from src.metrics import f1, recall, precision
+
 from keras.models import Model
 from keras.metrics import categorical_accuracy
 from keras.layers import Conv2D, MaxPool2D, UpSampling2D, Concatenate, Input, Dropout
 
 class UNET():
 
-    def __init__(self, image_shape = (400, 400, 3), layers = 2, dropout_rate = 0.5):
+    def __init__(self, image_shape = (400, 400, 3), layers = 2, dropout_rate = 0):
 
         self.IMAGE_SIZE = image_shape[0]
         self.IMAGE_SHAPE = image_shape
@@ -32,9 +34,11 @@ class UNET():
 
 
         print('Building model with {} layers'.format(self.layers))
-        filter_sizes = np.append(np.flip([int(self.IMAGE_SIZE/2**(i)) for i in range(self.layers)]), self.IMAGE_SIZE*2)
+        #filter_sizes = np.append(np.flip([int(self.IMAGE_SIZE/2**(i)) for i in range(self.layers)]), self.IMAGE_SIZE*2)
+        filter_sizes = [2**(6+i) for i in range(self.layers + 1)]
         print('Filtersizes being used in UNET: {}'.format(filter_sizes))
 
+        
         inputs = Input(self.IMAGE_SHAPE)
         pool = inputs
 
@@ -63,12 +67,12 @@ class UNET():
 
             conv = self.expand(conv, convs[i], filter_sizes[i])
 
-        conv = Conv2D(2, 3, padding='same', activation='relu')(conv)
-        outputs = Conv2D(2, 1, padding= 'same', activation='sigmoid')(conv)
+        conv = Conv2D(64, 3, padding='same', activation='relu')(conv)
+        outputs = Conv2D(1, 1, padding= 'same', activation='sigmoid')(conv)
 
         self.model = Model(inputs, outputs)
         print("Compiling model...")
-        self.model.compile(optimizer='adam', loss = 'binary_crossentropy', metrics = ['accuracy'])
+        self.model.compile(optimizer='adam', loss = 'binary_crossentropy', metrics = [f1, precision, recall, 'accuracy'])
         print("Model compiled.")
 
 
