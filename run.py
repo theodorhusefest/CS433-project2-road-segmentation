@@ -4,10 +4,11 @@ reload(src)
 
 from src.preprocessing import data_generator
 from src.UNET import UNET
+
 from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import to_categorical
 
-x_train, x_test, y_train, y_test = data_generator(400, num_images = 10, rotation_degs=[])
+x_train, x_test, y_train, y_test = data_generator(80, num_images = 10, rotation_degs=[])
 print()
 print('Loaded {} patches for x_train, and {} for x_test.'.format(len(x_train), len(x_test)))
 
@@ -15,11 +16,10 @@ def fix_labels(y):
     y[y >= 0.5] = 1
     y[y < 0.5] = 0
 
-    return y # to_categorical(y)
+    return to_categorical(y.astype(int))
 
 y_tr = fix_labels(y_train)
 y_te = fix_labels(y_test)
-
 
 
 datagen = ImageDataGenerator(

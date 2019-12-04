@@ -10,9 +10,9 @@ os.environ['KMP_DUPLICATE_LIB_OK']='True' # Need this to work on Theos mac
 
 from src.metrics import f1, recall, precision
 
-from keras.models import Model
-from keras.metrics import categorical_accuracy
-from keras.layers import Conv2D, MaxPool2D, UpSampling2D, Concatenate, Input, Dropout
+from keras.models import Model, Sequential
+
+from keras.layers import Conv2D, MaxPool2D, UpSampling2D, Concatenate, Input, Dropout, LeakyReLU
 
 class UNET():
 
@@ -23,7 +23,35 @@ class UNET():
         self.layers = layers
         self.dropout_rate = dropout_rate
         self.model = None
+        self.alpha = 0.01
+        self.lrelu = lambda x: LeakyReLU(alpha=0.01)(x)
 
+        self.activation = self.lrelu
+
+
+    def build_new_model():
+        self.model = Sequential()
+        self.model.add(Conv2D(32, 2, input_shape=self.IMAGE_SHAPE))
+        self.model.add(LeakyReLU(alpha = self.alpha))
+        self.model.add(Conv2D(32, 2))
+        self.model.add(LeakyReLU(alpha = self.alpha))
+        self.model.add(MaxPool2D(pool_size=(2, 2)))
+        self.model.add(Dropout(self.dropout_rate))
+
+        self.model.add(Conv2D(64, 2))
+        self.model.add(LeakyReLU(alpha = self.alpha))
+        self.model.add(Conv2D(64, 2))
+        self.model.add(LeakyReLU(alpha = self.alpha))
+        self.model.add(MaxPool2D(pool_size=(2, 2)))
+        self.model.add(Dropout(self.dropout_rate))
+
+        self.model.add(Conv2D(128, 2))
+        self.model.add(LeakyReLU(alpha = self.alpha))
+        self.model.add(Conv2D(128, 2))
+        self.model.add(LeakyReLU(alpha = self.alpha))
+        self.model.add(Dropout(self.dropout_rate))
+
+        self.model.add()
 
 
     def build_model(self):
@@ -67,8 +95,8 @@ class UNET():
 
             conv = self.expand(conv, convs[i], filter_sizes[i])
 
-        conv = Conv2D(64, 3, padding='same', activation='relu')(conv)
-        outputs = Conv2D(1, 1, padding= 'same', activation='sigmoid')(conv)
+        conv = Conv2D(64, 3, padding='same', activation=self.activation)(conv)
+        outputs = Conv2D(2, 2, padding= 'same', activation='sigmoid')(conv)
 
         self.model = Model(inputs, outputs)
         print("Compiling model...")
@@ -86,8 +114,8 @@ class UNET():
             x: data to be contracted
             filter_size: w
         """
-        conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation='relu')(x)
-        conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation='relu')(conv)
+        conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation=self.activation)(x)
+        conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation=self.activation)(conv)
         if dropout:
             conv = Dropout(self.dropout_rate)(conv)
             
@@ -99,14 +127,14 @@ class UNET():
         up = UpSampling2D(size = (2, 2))(x)
         concat = Concatenate()([up, contract_conv])
 
-        conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation='relu')(concat)
-        conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation='relu')(conv)
+        conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation=self.activation)(concat)
+        conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation=self.activation)(conv)
 
         return conv
 
     def bottleneck(self, x, filter_size, kernel_size = 3, padding = 'same', strides = 1):
-        conv = Conv2D(filter_size, kernel_size, padding= padding, strides= strides, activation= 'relu')(x)
-        conv = Conv2D(filter_size, kernel_size, padding= padding, strides= strides, activation= 'relu')(conv)
+        conv = Conv2D(filter_size, kernel_size, padding= padding, strides= strides, activation= self.activation)(x)
+        conv = Conv2D(filter_size, kernel_size, padding= padding, strides= strides, activation= self.activation)(conv)
         conv = Dropout(self.dropout_rate)(conv)
         return conv 
 
@@ -129,6 +157,7 @@ class UNET():
         print()
         print('Training using generator')
         self.model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size),
+                                validation_data = (x_val, y_val),
                                 steps_per_epoch = len(x_train)/batch_size, epochs = epochs)
 
         self.save_model()
