@@ -3,9 +3,9 @@
 # Filestypes 
 **/.DS_Store
 **/.ipynb_checkpoints
-**/.pyc 
-**/.icloud
-**/.npy
+**/*.pyc 
+**/*.icloud
+**/*.npy
 
 # Folders
 **/__pycache__
