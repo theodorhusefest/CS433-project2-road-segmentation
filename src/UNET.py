@@ -28,32 +28,6 @@ class UNET():
 
         self.activation = self.lrelu
 
-
-    def build_new_model():
-        self.model = Sequential()
-        self.model.add(Conv2D(32, 2, input_shape=self.IMAGE_SHAPE))
-        self.model.add(LeakyReLU(alpha = self.alpha))
-        self.model.add(Conv2D(32, 2))
-        self.model.add(LeakyReLU(alpha = self.alpha))
-        self.model.add(MaxPool2D(pool_size=(2, 2)))
-        self.model.add(Dropout(self.dropout_rate))
-
-        self.model.add(Conv2D(64, 2))
-        self.model.add(LeakyReLU(alpha = self.alpha))
-        self.model.add(Conv2D(64, 2))
-        self.model.add(LeakyReLU(alpha = self.alpha))
-        self.model.add(MaxPool2D(pool_size=(2, 2)))
-        self.model.add(Dropout(self.dropout_rate))
-
-        self.model.add(Conv2D(128, 2))
-        self.model.add(LeakyReLU(alpha = self.alpha))
-        self.model.add(Conv2D(128, 2))
-        self.model.add(LeakyReLU(alpha = self.alpha))
-        self.model.add(Dropout(self.dropout_rate))
-
-        self.model.add()
-
-
     def build_model(self):
         """
         Builds the model for a general number of layers.
