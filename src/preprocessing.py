@@ -7,8 +7,10 @@ import os
 import numpy as np
 from scipy import ndimage, misc
 import matplotlib.image as mpimg
+from skimage.transform import resize
 
- 
+def lower_res(x, channels, res):
+    return np.asarray(resize(x, (res, res, channels)))
 
 def img_crop(im, w, h):
     list_patches = []
@@ -66,9 +68,9 @@ def data_generator(patch_size, num_images = 100, train_test_ratio = 0.8, rotatio
         x_image_filename = x_filename + imageid + ".png"
         y_image_filename = y_filename + imageid + ".png"
         if os.path.isfile(x_image_filename) and os.path.isfile(y_image_filename):
-            x_img = mpimg.imread(x_image_filename)
+            x_img = lower_res(mpimg.imread(x_image_filename), 3, 128)
             x_imgs.append(x_img)
-            y_img = mpimg.imread(y_image_filename)
+            y_img = lower_res(mpimg.imread(y_image_filename), 1, 128)
             y_imgs.append(y_img)
         else:
             print('File ' + image_filename + ' does not exist') 

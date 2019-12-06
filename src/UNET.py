@@ -6,6 +6,7 @@ import os,sys
 import numpy as np
 from datetime import datetime
 
+
 os.environ['KMP_DUPLICATE_LIB_OK']='True' # Need this to work on Theos mac
 
 from src.metrics import f1, recall, precision
@@ -13,6 +14,8 @@ from src.metrics import f1, recall, precision
 from keras.models import Model, Sequential
 
 from keras.layers import Conv2D, MaxPool2D, UpSampling2D, Concatenate, Input, Dropout, LeakyReLU
+
+from keras.callbacks import ModelCheckpoint
 
 class UNET():
 
@@ -130,9 +133,13 @@ class UNET():
     def train_generator(self, datagen, x_train, y_train, x_val, y_val, epochs, batch_size):
         print()
         print('Training using generator')
+        filepath="models/epoch-val_accuracy-{epoch:04d}-{val_acc:.4f}.hdf5"
+        checkpoint = ModelCheckpoint(filepath, monitor='val_accuracy', verbose=0, period=50, save_weights_only=True)
+        callbacks_list = [checkpoint]
         self.model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size),
                                 validation_data = (x_val, y_val),
-                                steps_per_epoch = len(x_train)/batch_size, epochs = epochs)
+                                steps_per_epoch = len(x_train)/batch_size, epochs = epochs,
+                                callbacks=callbacks_list)
 
         self.save_model()
 
