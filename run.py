@@ -11,7 +11,7 @@ from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import to_categorical
 
 
-x_tr, x_te, y_tr, y_te = data_generator(128, num_images = 100, rotation_degs=range(3,360,3))
+x_tr, x_te, y_tr, y_te = data_generator(128, num_images = 100, rotation_degs=[30, 60, 90, 120, 150, 180])
 print()
 print('Loaded {} patches for x_train, and {} for x_test.'.format(len(x_tr), len(x_te)))
 
@@ -48,6 +48,6 @@ UNET = UNET(image_shape = x_tr[0].shape, layers = 2)
 UNET.build_model()
 UNET.describe_model()
 
-UNET.train_generator(datagen, x_tr, y_tr, x_te, y_te, epochs = 5, batch_size = 32)
+UNET.train_generator(datagen, x_tr, y_tr, x_te, y_te, epochs = 100, batch_size = 32)
 
 UNET.save_model()
