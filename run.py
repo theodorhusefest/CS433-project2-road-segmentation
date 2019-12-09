@@ -48,6 +48,6 @@ UNET = UNET(image_shape = x_tr[0].shape, layers = 2)
 UNET.build_model()
 UNET.describe_model()
 
-UNET.train_generator(datagen, x_tr, y_tr, x_te, y_te, epochs = 100, batch_size = 32)
+UNET.train_generator(datagen, x_tr, y_tr, x_te, y_te, epochs = 10, batch_size = 32)
 
 UNET.save_model()

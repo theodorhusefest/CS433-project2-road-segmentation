@@ -40,7 +40,7 @@ class UNET():
 
         print('Building model with {} layers'.format(self.layers))
         #filter_sizes = np.append(np.flip([int(self.IMAGE_SIZE/2**(i)) for i in range(self.layers)]), self.IMAGE_SIZE*2)
-        filter_sizes = [2**(6+i) for i in range(self.layers + 1)]
+        filter_sizes = [2**(4+i) for i in range(self.layers + 1)]
         print('Filtersizes being used in UNET: {}'.format(filter_sizes))
 
         
@@ -72,7 +72,7 @@ class UNET():
 
             conv = self.expand(conv, convs[i], filter_sizes[i])
 
-        conv = Conv2D(64, 3, padding='same', activation=self.activation)(conv)
+        conv = Conv2D(64, 3, padding='same', activation= self.activation)(conv)
         outputs = Conv2D(2, 2, padding= 'same', activation='sigmoid')(conv)
 
         self.model = Model(inputs, outputs)
@@ -133,9 +133,11 @@ class UNET():
     def train_generator(self, datagen, x_train, y_train, x_val, y_val, epochs, batch_size):
         print()
         print('Training using generator')
+        
         filepath="models/epoch-val_accuracy-{epoch:04d}-{val_acc:.4f}.hdf5"
         checkpoint = ModelCheckpoint(filepath, monitor='val_accuracy', verbose=0, period=50, save_weights_only=True)
         callbacks_list = [checkpoint]
+
         self.model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size),
                                 validation_data = (x_val, y_val),
                                 steps_per_epoch = len(x_train)/batch_size, epochs = epochs,
