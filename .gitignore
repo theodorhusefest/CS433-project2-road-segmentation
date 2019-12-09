@@ -8,4 +8,5 @@
 **/*.npy
 
 # Folders
+**/secret
 **/__pycache__
