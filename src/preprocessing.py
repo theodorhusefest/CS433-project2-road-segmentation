@@ -1,13 +1,88 @@
 
-""" Containts all functions used in preprocessing""" 
-
+""" Contains all functions used in preprocessing""" 
 
 
 import os
 import numpy as np
+from six.moves import urllib
 from scipy import ndimage, misc
 import matplotlib.image as mpimg
 from skimage.transform import resize
+import requests
+from PIL import Image
+from io import BytesIO
+
+def data_generator(patch_size, num_images = 100, train_test_ratio = 0.8, rotation_degs = [], 
+                   DATAPATH = 'https://console.cloud.google.com/storage/browser/cs433-ml/data/training/'):
+    """
+    Generate data from images, contruct patches and split data into train/test set
+    
+    Returns:
+        x_train, x_test, y_train, y_test
+    """
+    x_imgs = []
+    y_imgs = []
+
+    # Load all images
+    for i in range(1, num_images+1):
+        imageid = "satImage_%.3d" % i
+        x_image_filename = DATAPATH + "images/" + imageid + ".png"
+        y_image_filename = DATAPATH + "groundtruth" + imageid + ".png"
+
+        #try:
+
+        img = Image.open(BytesIO(urllib.request.urlopen(x_image_filename)))
+        print(img)
+        x_img = lower_res(mpimg.imread(x_temp), 3, 128)
+        x_imgs.append(x_img)
+
+
+        y_temp = urllib.request.urlretrieve(y_image_filename)
+        y_img = lower_res(mpimg.imread(y_temp), 1, 128)
+        y_imgs.append(y_img)
+
+        #except:
+        print('Cannot load images')
+
+        """
+        if os.path.isfile(x_image_filename) and os.path.isfile(y_image_filename):
+            x_img = lower_res(mpimg.imread(x_image_filename), 3, 128)
+            x_imgs.append(x_img)
+            y_img = lower_res(mpimg.imread(y_image_filename), 1, 128)
+            y_imgs.append(y_img)
+
+        else:
+            print('File ' + x_image_filename + ' does not exist') 
+        """
+    
+    num_images = len(x_imgs)
+    IMG_WIDTH = x_imgs[0].shape[0]
+    IMG_HEIGHT = x_imgs[0].shape[1]
+    assert x_imgs[0].shape[0]%patch_size == 0 , "patch size is not multiple of image width/height"
+
+    x_train, x_test, y_train, y_test = patches_split(x_imgs, y_imgs, patch_size, train_test_ratio)
+    
+    for deg in rotation_degs:
+        x_rotated_imgs = []
+        y_rotated_imgs = []
+        for i in range(num_images):
+            x_rotated_imgs.append(ndimage.rotate(x_imgs[i], deg, reshape=True, mode='mirror'))
+            y_rotated_imgs.append(ndimage.rotate(y_imgs[i], deg, reshape=True, mode='mirror'))
+            
+        x_train_rot, x_test_rot, y_train_rot, y_test_rot = patches_split(x_rotated_imgs, y_rotated_imgs, 
+                                                                         patch_size, train_test_ratio)
+        
+        x_train = np.concatenate([x_train, x_train_rot, x_test_rot])
+        y_train = np.concatenate([y_train, y_train_rot, y_test_rot])
+
+    y_train = np.asarray([y.reshape(patch_size, patch_size, 1) for y in y_train])
+    y_test = np.asarray([y.reshape(patch_size, patch_size, 1) for y in y_test])
+
+    return x_train, x_test, y_train, y_test
+
+
+
+
 
 def lower_res(x, channels, res):
     return np.asarray(resize(x, (res, res, channels)))
@@ -51,54 +126,6 @@ def patches_split(x, y, patch_size, split):
     return x_train, x_test, y_train, y_test
 
 
-def data_generator(patch_size, num_images = 100, train_test_ratio = 0.8, rotation_degs = [], 
-                   x_filename = './data/training/images/', y_filename = './data/training/groundtruth/'):
-    """
-    Generate data from images, contruct patches and split data into train/test set
-    
-    Returns:
-        x_train, x_test, y_train, y_test
-    """
-    x_imgs = []
-    y_imgs = []
-    
-    # Load all images
-    for i in range(1, num_images+1):
-        imageid = "satImage_%.3d" % i
-        x_image_filename = x_filename + imageid + ".png"
-        y_image_filename = y_filename + imageid + ".png"
-        if os.path.isfile(x_image_filename) and os.path.isfile(y_image_filename):
-            x_img = lower_res(mpimg.imread(x_image_filename), 3, 128)
-            x_imgs.append(x_img)
-            y_img = lower_res(mpimg.imread(y_image_filename), 1, 128)
-            y_imgs.append(y_img)
-        else:
-            print('File ' + image_filename + ' does not exist') 
-    
-    num_images = len(x_imgs)
-    IMG_WIDTH = x_imgs[0].shape[0]
-    IMG_HEIGHT = x_imgs[0].shape[1]
-    assert x_imgs[0].shape[0]%patch_size == 0 , "patch size is not multiple of image width/height"
-
-    x_train, x_test, y_train, y_test = patches_split(x_imgs, y_imgs, patch_size, train_test_ratio)
-    
-    for deg in rotation_degs:
-        x_rotated_imgs = []
-        y_rotated_imgs = []
-        for i in range(num_images):
-            x_rotated_imgs.append(ndimage.rotate(x_imgs[i], deg, reshape=True, mode='mirror'))
-            y_rotated_imgs.append(ndimage.rotate(y_imgs[i], deg, reshape=True, mode='mirror'))
-            
-        x_train_rot, x_test_rot, y_train_rot, y_test_rot = patches_split(x_rotated_imgs, y_rotated_imgs, 
-                                                                         patch_size, train_test_ratio)
-        
-        x_train = np.concatenate([x_train, x_train_rot, x_test_rot])
-        y_train = np.concatenate([y_train, y_train_rot, y_test_rot])
-
-    y_train = np.asarray([y.reshape(patch_size, patch_size, 1) for y in y_train])
-    y_test = np.asarray([y.reshape(patch_size, patch_size, 1) for y in y_test])
-
-    return x_train, x_test, y_train, y_test
 
 def patches_to_images(patches, patch_size, img_side_len=400):
     """

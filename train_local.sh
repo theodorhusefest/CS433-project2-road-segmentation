@@ -1,0 +1,1 @@
+gcloud ai-platform local train   --package-path src   --module-name src.run   --job-dir local-training-output

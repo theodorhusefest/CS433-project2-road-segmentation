@@ -1,0 +1,1 @@
+gcloud ai-platform jobs submit training $JOB_NAME   --package-path src/   --module-name src.run   --region $REGION   --python-version 3.5   --runtime-version 1.14   --job-dir $JOB_DIR   --stream-logs

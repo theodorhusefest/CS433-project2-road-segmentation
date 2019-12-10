@@ -1,11 +1,11 @@
 
 
-# Imports
 
-import os,sys
+import os
 import numpy as np
 from datetime import datetime
 
+import tensorflow as tf
 
 os.environ['KMP_DUPLICATE_LIB_OK']='True' # Need this to work on Theos mac
 
@@ -19,8 +19,9 @@ from keras.callbacks import ModelCheckpoint
 
 class UNET():
 
-    def __init__(self, image_shape = (400, 400, 3), layers = 2, dropout_rate = 0):
+    def __init__(self, args, image_shape = (400, 400, 3), layers = 2, dropout_rate = 0):
 
+        self.args = args
         self.IMAGE_SIZE = image_shape[0]
         self.IMAGE_SHAPE = image_shape
         self.layers = layers
@@ -146,10 +147,16 @@ class UNET():
         self.save_model()
 
     def save_model(self, filename  = ''):
-        print()
         print("Saving Model")
-        self.model.save('./models/model' + filename + datetime.now().strftime("%d_%H.%M") + '.h5')
-        self.model.save_weights('./models/weights' + filename + datetime.now().strftime("%d_%H.%M") + '.h5')
+    
+        self.model.save(self.args.job_dir + '/model' + filename + datetime.now().strftime("%d_%H.%M") + '.h5')
+        self.model.save_weights(self.args.job_dir + '/weights' + filename + datetime.now().strftime("%d_%H.%M") + '.h5')
+
+        # Cloud saving
+        #export_path = os.path.join(self.args.job_dir, 'keras_export')
+        #tf.contrib.saved_model.save_keras_model(self.model, export_path)
+        #print('Model exported to: {}'.format(export_path))
+
 
     def load_weights(self, model_filename, weights_filename):
         print()
