@@ -47,9 +47,9 @@ def data_generator(patch_size, num_images = 100, train_test_ratio = 0.8, rotatio
         y_image_filename = DESTINATION + '/training/groundtruth/' + imageid + '.png'
 
         if os.path.isfile(x_image_filename) and os.path.isfile(y_image_filename):
-            x_img = lower_res(mpimg.imread(x_image_filename), 3, 128)
+            x_img = lower_res(mpimg.imread(x_image_filename), 3, patch_size)
             x_imgs.append(x_img)
-            y_img = lower_res(mpimg.imread(y_image_filename), 1, 128)
+            y_img = lower_res(mpimg.imread(y_image_filename), 1, patch_size)
             y_imgs.append(y_img)
 
         else:
@@ -59,6 +59,7 @@ def data_generator(patch_size, num_images = 100, train_test_ratio = 0.8, rotatio
     num_images = len(x_imgs)
     IMG_WIDTH = x_imgs[0].shape[0]
     IMG_HEIGHT = x_imgs[0].shape[1]
+
     assert x_imgs[0].shape[0]%patch_size == 0 , "patch size is not multiple of image width/height"
 
     x_train, x_test, y_train, y_test = patches_split(x_imgs, y_imgs, patch_size, train_test_ratio)

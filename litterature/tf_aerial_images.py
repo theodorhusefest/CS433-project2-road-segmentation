@@ -10,6 +10,7 @@ import os
 import sys
 import urllib
 import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
 from PIL import Image
 
 import code
@@ -224,11 +225,16 @@ def main(argv=None):  # pylint: disable=unused-argument
     new_indices = idx0[0:min_c] + idx1[0:min_c]
     print(len(new_indices))
     print(train_data.shape)
+    print(train_labels.shape)
     train_data = train_data[new_indices, :, :, :]
     train_labels = train_labels[new_indices]
 
+
+    plt.imshow(train_labels[0])
+    plt.show()
     train_size = train_labels.shape[0]
 
+    print(error)
     c0 = 0
     c1 = 0
     for i in range(len(train_labels)):

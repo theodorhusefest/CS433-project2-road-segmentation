@@ -13,7 +13,7 @@ from keras.models import Model, Sequential
 
 from keras.layers import Conv2D, MaxPool2D, UpSampling2D, Concatenate, Input, Dropout, LeakyReLU
 
-from keras.callbacks import ModelCheckpoint
+from keras.callbacks import ModelCheckpoint, EarlyStopping
 
 class UNET():
 
@@ -25,10 +25,11 @@ class UNET():
         self.layers = layers
         self.dropout_rate = dropout_rate
         self.model = None
-
+        self.history = None
         self.lrelu = lambda x: LeakyReLU(alpha=0.1)(x)
 
         self.activation = self.lrelu
+
 
     def build_model(self):
         """
@@ -38,7 +39,6 @@ class UNET():
 
 
         print('Building model with {} layers'.format(self.layers))
-        #filter_sizes = np.append(np.flip([int(self.IMAGE_SIZE/2**(i)) for i in range(self.layers)]), self.IMAGE_SIZE*2)
         filter_sizes = [2**(4+i) for i in range(self.layers + 1)]
         print('Filtersizes being used in UNET: {}'.format(filter_sizes))
 
@@ -55,7 +55,7 @@ class UNET():
             if i == self.layers - 1: # If this is last iteration
                 conv, pool = self.contract(pool, filter_sizes[i], dropout= True)
             else:
-                conv, pool = self.contract(pool, filter_sizes[i], dropout= False)
+                conv, pool = self.contract(pool, filter_sizes[i], dropout= True)
             
             # Save convolution for expanding phase
             convs.append(conv)
@@ -69,10 +69,10 @@ class UNET():
         for i in range(self.layers-1 , -1, -1):
             print('Building expansion at layer: {} and filtersize: {}'.format(i+1, filter_sizes[i]))
 
-            conv = self.expand(conv, convs[i], filter_sizes[i])
+            conv = self.expand(conv, convs[i], filter_sizes[i], dropout=True)
 
-        conv = Conv2D(64, 3, padding='same', activation= self.activation)(conv)
-        outputs = Conv2D(2, 2, padding= 'same', activation='sigmoid')(conv)
+        conv = Conv2D(64, (3, 3), padding='same', activation= self.activation, kernel_initializer="he_normal")(conv)
+        outputs = Conv2D(1, (1,1), padding= 'same', activation='sigmoid')(conv)
 
         self.model = Model(inputs, outputs)
         print("Compiling model...")
@@ -80,7 +80,7 @@ class UNET():
         print("Model compiled.")
 
 
-    def contract(self, x, filter_size, kernel_size = 3, padding = 'same', strides = 1, dropout= False):
+    def contract(self, x, filter_size, kernel_size = (3, 3), padding = 'same', strides = 1, dropout= False):
         """
         Contracting phase of the model.
         Consists of two layers with convoluton, before a before a pooling phase which reduces the dimentionality.
@@ -90,29 +90,35 @@ class UNET():
             x: data to be contracted
             filter_size: w
         """
-        conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation=self.activation)(x)
-        conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation=self.activation)(conv)
+
+        conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation=self.activation, kernel_initializer="he_normal")(x)
+        conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation=self.activation, kernel_initializer="he_normal")(conv)
         if dropout:
             conv = Dropout(self.dropout_rate)(conv)
-            
+
         pool = MaxPool2D(pool_size = (2,2))(conv)
         
         return conv, pool
 
-    def expand(self, x, contract_conv, filter_size, kernel_size = 3, padding = 'same', strides = 1):
+
+    def expand(self, x, contract_conv, filter_size, kernel_size = (3, 3), padding = 'same', strides = 1, dropout = False):
         up = UpSampling2D(size = (2, 2))(x)
-        concat = Concatenate()([up, contract_conv])
+        concat = Concatenate(axis = 3)([contract_conv, up])
 
-        conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation=self.activation)(concat)
-        conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation=self.activation)(conv)
-
+        conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation=self.activation, kernel_initializer="he_normal")(concat)
+        conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation=self.activation, kernel_initializer="he_normal")(conv)
+        if dropout:
+            conv = Dropout(self.dropout_rate)(conv)
         return conv
 
-    def bottleneck(self, x, filter_size, kernel_size = 3, padding = 'same', strides = 1):
-        conv = Conv2D(filter_size, kernel_size, padding= padding, strides= strides, activation= self.activation)(x)
-        conv = Conv2D(filter_size, kernel_size, padding= padding, strides= strides, activation= self.activation)(conv)
+
+    def bottleneck(self, x, filter_size, kernel_size = (3,3), padding = 'same', strides = 1):
+        conv = Conv2D(filter_size, kernel_size, padding= padding, strides= strides, activation= self.activation, kernel_initializer="he_normal")(x)
+        conv = Conv2D(filter_size, kernel_size, padding= padding, strides= strides, activation= self.activation, kernel_initializer="he_normal")(conv)
         conv = Dropout(self.dropout_rate)(conv)
+
         return conv 
+
 
     def describe_model(self):
         if self.model == None:
@@ -133,11 +139,12 @@ class UNET():
         print()
         print('Training using generator')
         
-        filepath= self.args.job_dir + '/model' + datetime.now().strftime("%d_%H.%M") + '.h5'
-        checkpoint = ModelCheckpoint(filepath, monitor='val_accuracy', verbose=0, period=10, save_weights_only=True)
-        callbacks_list = [checkpoint]
+        filepath= self.args.job_dir + '/weights_' + 'epoch{epoch:02d}_' + datetime.now().strftime("%d_%H.%M") + '.h5'
+        checkpoint = ModelCheckpoint(filepath, monitor='val_accuracy', verbose=1, period=5, save_weights_only= True)
+        earlystop = EarlyStopping(monitor='val_f1', verbose=1, patience=5, restore_best_weights= True)
+        callbacks_list = [checkpoint, earlystop]
 
-        self.model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size),
+        self.history = self.model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size),
                                 validation_data = (x_val, y_val),
                                 steps_per_epoch = len(x_train)/batch_size, epochs = epochs,
                                 callbacks=callbacks_list)
