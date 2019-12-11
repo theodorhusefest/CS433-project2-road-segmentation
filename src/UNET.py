@@ -39,7 +39,7 @@ class UNET():
 
 
         print('Building model with {} layers'.format(self.layers))
-        filter_sizes = [2**(4+i) for i in range(self.layers + 1)]
+        filter_sizes = [2**(6+i) for i in range(self.layers + 1)]
         print('Filtersizes being used in UNET: {}'.format(filter_sizes))
 
         
@@ -147,20 +147,23 @@ class UNET():
             
             return LearningRateScheduler(schedule, verbose=1)
 
-        lr_sched = step_decay_schedule(initial_lr=1e-2, decay_factor=0.70, step_size=6)
+        #lr_sched = step_decay_schedule(initial_lr=1e-2, decay_factor=0.70, step_size=6)
 
 
         filepath= self.args.job_dir + '/weights_' + 'epoch{epoch:02d}_' + datetime.now().strftime("%d_%H.%M") + '.h5'
+        logs_path = self.args.job_dir + '/logs/'
+
+        tensorboard = TensorBoard(log_dir=logs_path, histogram_freq=0, write_graph=True, write_images=True)
         checkpoint = ModelCheckpoint(filepath, monitor='val_accuracy', verbose=1, period=10, save_weights_only= True)
         earlystop = EarlyStopping(monitor='val_f1', verbose=1, patience=11, mode='max', restore_best_weights= True)
-        callbacks_list = [checkpoint, earlystop, lr_sched]
+        callbacks_list = [checkpoint, earlystop, tensorboard]
 
         self.history = self.model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size),
                                 validation_data = (x_val, y_val),
                                 steps_per_epoch = len(x_train)/batch_size, epochs = epochs,
                                 callbacks=callbacks_list)
 
-        self.save_model()f
+        self.save_model()
 
 
     def save_model(self, filename  = ''):

@@ -8,7 +8,7 @@ from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import to_categorical
 
 
-x_tr, x_te, y_tr, y_te = data_generator(128, num_images = 2, rotation_degs= range(15, 360, 15), download_from_cloud=False)
+x_tr, x_te, y_tr, y_te = data_generator(128, num_images = 100, rotation_degs= range(15, 360, 15), download_from_cloud=False)
 print()
 print('Loaded {} patches for x_train, and {} for x_test.'.format(len(x_tr), len(x_te)))
 
