@@ -13,7 +13,7 @@ from keras.models import Model, Sequential
 
 from keras.layers import Conv2D, MaxPool2D, UpSampling2D, Concatenate, Input, Dropout, LeakyReLU
 
-from keras.callbacks import ModelCheckpoint, EarlyStopping
+from keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard, LearningRateScheduler
 
 class UNET():
 
@@ -136,22 +136,31 @@ class UNET():
 
 
     def train_generator(self, datagen, x_train, y_train, x_val, y_val, epochs, batch_size):
-        print()
         print('Training using generator')
         
+        def step_decay_schedule(initial_lr=1e-3, decay_factor=0.75, step_size=10):
+            '''
+            Wrapper function to create a LearningRateScheduler with step decay schedule.
+            '''
+            def schedule(epoch):
+                return initial_lr * (decay_factor ** np.floor(epoch/step_size))
+            
+            return LearningRateScheduler(schedule, verbose=1)
+
+        lr_sched = step_decay_schedule(initial_lr=1e-2, decay_factor=0.70, step_size=6)
+
+
         filepath= self.args.job_dir + '/weights_' + 'epoch{epoch:02d}_' + datetime.now().strftime("%d_%H.%M") + '.h5'
-
-        checkpoint = ModelCheckpoint(filepath, monitor='val_accuracy', verbose=1, period=5, save_weights_only= True)
-
-        earlystop = EarlyStopping(monitor='val_fi', verbose=1, patience=5, mode='max', restore_best_weights= True)
-        callbacks_list = [checkpoint, earlystop]
+        checkpoint = ModelCheckpoint(filepath, monitor='val_accuracy', verbose=1, period=10, save_weights_only= True)
+        earlystop = EarlyStopping(monitor='val_f1', verbose=1, patience=11, mode='max', restore_best_weights= True)
+        callbacks_list = [checkpoint, earlystop, lr_sched]
 
         self.history = self.model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size),
                                 validation_data = (x_val, y_val),
                                 steps_per_epoch = len(x_train)/batch_size, epochs = epochs,
                                 callbacks=callbacks_list)
 
-        self.save_model()
+        self.save_model()f
 
 
     def save_model(self, filename  = ''):

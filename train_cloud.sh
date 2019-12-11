@@ -1,4 +1,4 @@
-export JOB_NAME="WED_1426_DROP05"
+export JOB_NAME="WED_2150_LRDEC"
 export GOOGLE_APPLICATION_CREDENTIALS="secret/CS433-59bd8aae4120.json"
 export REGION="europe-west1"
 export BUCKET_NAME="cs433-ml"
