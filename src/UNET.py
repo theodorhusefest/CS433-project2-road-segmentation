@@ -5,8 +5,6 @@ import os
 import numpy as np
 from datetime import datetime
 
-import tensorflow as tf
-
 os.environ['KMP_DUPLICATE_LIB_OK']='True' # Need this to work on Theos mac
 
 from src.metrics import f1, recall, precision
@@ -19,7 +17,7 @@ from keras.callbacks import ModelCheckpoint
 
 class UNET():
 
-    def __init__(self, args, image_shape = (400, 400, 3), layers = 2, dropout_rate = 0):
+    def __init__(self, args, image_shape = (400, 400, 3), layers = 2, dropout_rate = 0.5):
 
         self.args = args
         self.IMAGE_SIZE = image_shape[0]
@@ -27,8 +25,8 @@ class UNET():
         self.layers = layers
         self.dropout_rate = dropout_rate
         self.model = None
-        self.alpha = 0.01
-        self.lrelu = lambda x: LeakyReLU(alpha=0.01)(x)
+
+        self.lrelu = lambda x: LeakyReLU(alpha=0.1)(x)
 
         self.activation = self.lrelu
 
@@ -135,8 +133,8 @@ class UNET():
         print()
         print('Training using generator')
         
-        filepath="models/epoch-val_accuracy-{epoch:04d}-{val_acc:.4f}.hdf5"
-        checkpoint = ModelCheckpoint(filepath, monitor='val_accuracy', verbose=0, period=50, save_weights_only=True)
+        filepath= self.args.job_dir + '/model' + datetime.now().strftime("%d_%H.%M") + '.h5'
+        checkpoint = ModelCheckpoint(filepath, monitor='val_accuracy', verbose=0, period=10, save_weights_only=True)
         callbacks_list = [checkpoint]
 
         self.model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size),
@@ -151,11 +149,6 @@ class UNET():
     
         self.model.save(self.args.job_dir + '/model' + filename + datetime.now().strftime("%d_%H.%M") + '.h5')
         self.model.save_weights(self.args.job_dir + '/weights' + filename + datetime.now().strftime("%d_%H.%M") + '.h5')
-
-        # Cloud saving
-        #export_path = os.path.join(self.args.job_dir, 'keras_export')
-        #tf.contrib.saved_model.save_keras_model(self.model, export_path)
-        #print('Model exported to: {}'.format(export_path))
 
 
     def load_weights(self, model_filename, weights_filename):

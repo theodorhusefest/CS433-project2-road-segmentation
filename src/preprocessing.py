@@ -8,43 +8,44 @@ from six.moves import urllib
 from scipy import ndimage, misc
 import matplotlib.image as mpimg
 from skimage.transform import resize
-import requests
-from PIL import Image
-from io import BytesIO
 
-def data_generator(patch_size, num_images = 100, train_test_ratio = 0.8, rotation_degs = [], 
-                   DATAPATH = 'https://console.cloud.google.com/storage/browser/cs433-ml/data/training/'):
+from google.cloud import storage
+from zipfile import ZipFile
+
+
+def data_generator(patch_size, num_images = 100, train_test_ratio = 0.8, rotation_degs = [], download_from_cloud= False,
+                   DATAPATH = "gs://cs433-ml/data/training.zip"):
     """
     Generate data from images, contruct patches and split data into train/test set
     
     Returns:
         x_train, x_test, y_train, y_test
     """
+    
+    if download_from_cloud:
+        BUCKETNAME = 'cs433-ml'
+        DESTINATION = './temp2'
+
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(BUCKETNAME)
+        blob = bucket.blob('data/training.zip')
+        blob.download_to_filename('temp.zip')
+
+        with ZipFile('temp.zip', 'r') as zipObj:
+            zipObj.extractall('temp2')
+
+    else:
+        DESTINATION = './data'
+        
     x_imgs = []
     y_imgs = []
 
     # Load all images
     for i in range(1, num_images+1):
         imageid = "satImage_%.3d" % i
-        x_image_filename = DATAPATH + "images/" + imageid + ".png"
-        y_image_filename = DATAPATH + "groundtruth" + imageid + ".png"
+        x_image_filename = DESTINATION + '/training/images/' + imageid + '.png'
+        y_image_filename = DESTINATION + '/training/groundtruth/' + imageid + '.png'
 
-        #try:
-
-        img = Image.open(BytesIO(urllib.request.urlopen(x_image_filename)))
-        print(img)
-        x_img = lower_res(mpimg.imread(x_temp), 3, 128)
-        x_imgs.append(x_img)
-
-
-        y_temp = urllib.request.urlretrieve(y_image_filename)
-        y_img = lower_res(mpimg.imread(y_temp), 1, 128)
-        y_imgs.append(y_img)
-
-        #except:
-        print('Cannot load images')
-
-        """
         if os.path.isfile(x_image_filename) and os.path.isfile(y_image_filename):
             x_img = lower_res(mpimg.imread(x_image_filename), 3, 128)
             x_imgs.append(x_img)
@@ -53,7 +54,7 @@ def data_generator(patch_size, num_images = 100, train_test_ratio = 0.8, rotatio
 
         else:
             print('File ' + x_image_filename + ' does not exist') 
-        """
+
     
     num_images = len(x_imgs)
     IMG_WIDTH = x_imgs[0].shape[0]
@@ -72,8 +73,11 @@ def data_generator(patch_size, num_images = 100, train_test_ratio = 0.8, rotatio
         x_train_rot, x_test_rot, y_train_rot, y_test_rot = patches_split(x_rotated_imgs, y_rotated_imgs, 
                                                                          patch_size, train_test_ratio)
         
-        x_train = np.concatenate([x_train, x_train_rot, x_test_rot])
-        y_train = np.concatenate([y_train, y_train_rot, y_test_rot])
+        x_train = np.concatenate([x_train, x_train_rot])
+        y_train = np.concatenate([y_train, y_train_rot])
+
+        x_test = np.concatenate([x_test, x_test_rot])
+        y_test = np.concatenate([y_test, y_test_rot])
 
     y_train = np.asarray([y.reshape(patch_size, patch_size, 1) for y in y_train])
     y_test = np.asarray([y.reshape(patch_size, patch_size, 1) for y in y_test])

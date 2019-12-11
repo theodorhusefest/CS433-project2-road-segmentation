@@ -11,4 +11,4 @@
 **/secret
 **/__pycache__
 **/cloud_env
-
+**/.vscode

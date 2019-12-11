@@ -3,6 +3,7 @@ pandas
 matplotlib
 scipy
 scikit-image
+requests
 
 tensorflow>=1.13,<2
 Keras>=2.2.4
