@@ -17,13 +17,13 @@ from keras.callbacks import ModelCheckpoint, EarlyStopping
 
 class UNET():
 
-    def __init__(self, args, image_shape = (400, 400, 3), layers = 2, dropout_rate = 0.5):
+    def __init__(self, args, image_shape = (400, 400, 3), layers = 2):
 
         self.args = args
         self.IMAGE_SIZE = image_shape[0]
         self.IMAGE_SHAPE = image_shape
         self.layers = layers
-        self.dropout_rate = dropout_rate
+        self.dropout_rate = 0.5
         self.model = None
         self.history = None
         self.lrelu = lambda x: LeakyReLU(alpha=0.1)(x)
@@ -71,7 +71,7 @@ class UNET():
 
             conv = self.expand(conv, convs[i], filter_sizes[i], dropout=True)
 
-        conv = Conv2D(64, (3, 3), padding='same', activation= self.activation, kernel_initializer="he_normal")(conv)
+        conv = Conv2D(filter_sizes[0], (3, 3), padding='same', activation= self.activation, kernel_initializer="he_normal")(conv)
         outputs = Conv2D(1, (1,1), padding= 'same', activation='sigmoid')(conv)
 
         self.model = Model(inputs, outputs)
@@ -112,7 +112,7 @@ class UNET():
         return conv
 
 
-    def bottleneck(self, x, filter_size, kernel_size = (3,3), padding = 'same', strides = 1):
+    def bottleneck(self, x, filter_size, kernel_size = (3, 3), padding = 'same', strides = 1):
         conv = Conv2D(filter_size, kernel_size, padding= padding, strides= strides, activation= self.activation, kernel_initializer="he_normal")(x)
         conv = Conv2D(filter_size, kernel_size, padding= padding, strides= strides, activation= self.activation, kernel_initializer="he_normal")(conv)
         conv = Dropout(self.dropout_rate)(conv)
@@ -140,8 +140,10 @@ class UNET():
         print('Training using generator')
         
         filepath= self.args.job_dir + '/weights_' + 'epoch{epoch:02d}_' + datetime.now().strftime("%d_%H.%M") + '.h5'
+
         checkpoint = ModelCheckpoint(filepath, monitor='val_accuracy', verbose=1, period=5, save_weights_only= True)
-        earlystop = EarlyStopping(monitor='val_f1', verbose=1, patience=5, restore_best_weights= True)
+
+        earlystop = EarlyStopping(monitor='val_fi', verbose=1, patience=5, mode='max', restore_best_weights= True)
         callbacks_list = [checkpoint, earlystop]
 
         self.history = self.model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size),
@@ -150,6 +152,7 @@ class UNET():
                                 callbacks=callbacks_list)
 
         self.save_model()
+
 
     def save_model(self, filename  = ''):
         print("Saving Model")
