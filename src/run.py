@@ -45,7 +45,7 @@ print(x_tr[0].shape)
 
 args = get_args()
 
-UNET = UNET(args, image_shape = x_tr[0].shape, layers = 2)
+UNET = UNET(args, image_shape = x_tr[0].shape, layers = 3)
 UNET.build_model()
 UNET.describe_model()
 
