@@ -39,7 +39,7 @@ class UNET():
 
 
         print('Building model with {} layers'.format(self.layers))
-        filter_sizes = [2**(6+i) for i in range(self.layers + 1)]
+        filter_sizes = [2**(4+i) for i in range(self.layers + 1)]
         print('Filtersizes being used in UNET: {}'.format(filter_sizes))
 
         
@@ -150,7 +150,7 @@ class UNET():
         #lr_sched = step_decay_schedule(initial_lr=1e-2, decay_factor=0.70, step_size=6)
 
 
-        filepath= self.args.job_dir + '/weights_' + 'epoch{epoch:02d}_' + datetime.now().strftime("%d_%H.%M") + '.h5'
+        filepath= self.args.job_dir + '/weights_400_' + 'epoch{epoch:02d}_' + datetime.now().strftime("%d_%H.%M") + '.h5'
         logs_path = self.args.job_dir + '/logs/'
 
         tensorboard = TensorBoard(log_dir=logs_path, histogram_freq=0, write_graph=True, write_images=True)
@@ -169,7 +169,7 @@ class UNET():
     def save_model(self, filename  = ''):
         print("Saving Model")
     
-        self.model.save(self.args.job_dir + '/model' + filename + datetime.now().strftime("%d_%H.%M") + '.h5')
+        self.model.save(self.args.job_dir + '/model' + '400' + datetime.now().strftime("%d_%H.%M") + '.h5')
         self.model.save_weights(self.args.job_dir + '/weights' + filename + datetime.now().strftime("%d_%H.%M") + '.h5')
 
 
