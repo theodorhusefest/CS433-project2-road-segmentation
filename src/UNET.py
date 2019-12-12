@@ -13,7 +13,7 @@ from keras.models import Model, Sequential
 
 from keras.layers import Conv2D, MaxPool2D, UpSampling2D, Concatenate, Input, Dropout, LeakyReLU
 
-from keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard, LearningRateScheduler
+from keras.callbacks import ModelCheckpoint, EarlyStopping, CSVLogger, LearningRateScheduler
 
 class UNET():
 
@@ -23,12 +23,22 @@ class UNET():
         self.IMAGE_SIZE = image_shape[0]
         self.IMAGE_SHAPE = image_shape
         self.layers = layers
-        self.dropout_rate = 0.5
+        self.dropout_rate = 0
         self.model = None
         self.history = None
-        self.lrelu = lambda x: LeakyReLU(alpha=0.1)(x)
+        self.lrelu = lambda x: LeakyReLU(alpha=0.01)(x)
+        self.activation = 'relu'
 
-        self.activation = self.lrelu
+        self.dir_ = self.args.job_dir + self.args.job_name
+        self.weights_dir = self.dir_ + '/weights'
+
+        """
+        if not os.path.isdir(self.dir_):
+            os.mkdir(self.dir_)
+        
+        if not os.path.isdir(self.weights_dir):
+            os.mkdir(self.weights_dir)
+        """
 
 
     def build_model(self):
@@ -36,7 +46,6 @@ class UNET():
         Builds the model for a general number of layers.
         Contains three phases, contracting, bottleneck and expansion.
         """
-
 
         print('Building model with {} layers'.format(self.layers))
         filter_sizes = [2**(4+i) for i in range(self.layers + 1)]
@@ -53,9 +62,9 @@ class UNET():
 
             print('Bulding contraction layers at layer: {} and filtersize: {}'.format(i+1, filter_sizes[i]))
             if i == self.layers - 1: # If this is last iteration
-                conv, pool = self.contract(pool, filter_sizes[i], dropout= True)
+                conv, pool = self.contract(pool, filter_sizes[i], dropout= False)
             else:
-                conv, pool = self.contract(pool, filter_sizes[i], dropout= True)
+                conv, pool = self.contract(pool, filter_sizes[i], dropout= False)
             
             # Save convolution for expanding phase
             convs.append(conv)
@@ -69,10 +78,10 @@ class UNET():
         for i in range(self.layers-1 , -1, -1):
             print('Building expansion at layer: {} and filtersize: {}'.format(i+1, filter_sizes[i]))
 
-            conv = self.expand(conv, convs[i], filter_sizes[i], dropout=True)
+            conv = self.expand(conv, convs[i], filter_sizes[i], dropout= False)
 
         conv = Conv2D(filter_sizes[0], (3, 3), padding='same', activation= self.activation, kernel_initializer="he_normal")(conv)
-        outputs = Conv2D(1, (1,1), padding= 'same', activation='sigmoid')(conv)
+        outputs = Conv2D(1, (1,1), padding= 'same', activation='sigmoid', kernel_initializer="he_normal")(conv)
 
         self.model = Model(inputs, outputs)
         print("Compiling model...")
@@ -115,7 +124,7 @@ class UNET():
     def bottleneck(self, x, filter_size, kernel_size = (3, 3), padding = 'same', strides = 1):
         conv = Conv2D(filter_size, kernel_size, padding= padding, strides= strides, activation= self.activation, kernel_initializer="he_normal")(x)
         conv = Conv2D(filter_size, kernel_size, padding= padding, strides= strides, activation= self.activation, kernel_initializer="he_normal")(conv)
-        conv = Dropout(self.dropout_rate)(conv)
+        #conv = Dropout(self.dropout_rate)(conv)
 
         return conv 
 
@@ -137,26 +146,15 @@ class UNET():
 
     def train_generator(self, datagen, x_train, y_train, x_val, y_val, epochs, batch_size):
         print('Training using generator')
-        
-        def step_decay_schedule(initial_lr=1e-3, decay_factor=0.75, step_size=10):
-            '''
-            Wrapper function to create a LearningRateScheduler with step decay schedule.
-            '''
-            def schedule(epoch):
-                return initial_lr * (decay_factor ** np.floor(epoch/step_size))
-            
-            return LearningRateScheduler(schedule, verbose=1)
-
-        #lr_sched = step_decay_schedule(initial_lr=1e-2, decay_factor=0.70, step_size=6)
 
 
-        filepath= self.args.job_dir + '/weights/LAY3_SIZE256_BATCH16/' + 'epoch{epoch:02d}_' + datetime.now().strftime("%d_%H.%M") + '.h5'
-        logs_path = self.args.job_dir + '/logs/'
+        filepath= self.weights_dir + '/epoch{epoch:02d}_' + datetime.now().strftime("%d_%H.%M") + '.h5'
+        logs_path = self.args.job_name + '.csv'
 
-        tensorboard = TensorBoard(log_dir=logs_path, histogram_freq=0, write_graph=True, write_images=True)
         checkpoint = ModelCheckpoint(filepath, monitor='val_accuracy', verbose=1, period=10, save_weights_only= True)
         earlystop = EarlyStopping(monitor='val_f1', verbose=1, patience=11, mode='max', restore_best_weights= True)
-        callbacks_list = [checkpoint, earlystop, tensorboard]
+        csv_logger = CSVLogger(logs_path, append=True)
+        callbacks_list = [checkpoint, csv_logger]
 
         self.history = self.model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size),
                                 validation_data = (x_val, y_val),
@@ -166,11 +164,11 @@ class UNET():
         self.save_model()
 
 
-    def save_model(self, filename  = "/LAY3_SIZE256_BATCH16/"):
+    def save_model(self, filename  = ''):
         print("Saving Model")
     
-        self.model.save(self.args.job_dir + '/model' + filename + datetime.now().strftime("%d_%H.%M") + '.h5')
-        self.model.save_weights(self.args.job_dir + '/weights' + filename + datetime.now().strftime("%d_%H.%M") + '.h5')
+        filepath= self.weights_dir + '/FINISHED' + datetime.now().strftime("%d_%H.%M") + '.h5'
+        self.model.save_weights(filepath)
 
 
     def load_weights(self, model_filename, weights_filename):

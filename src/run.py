@@ -7,8 +7,11 @@ from src.UNET import UNET
 from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import to_categorical
 
+import tensorflow as tf
+print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
-x_tr, x_te, y_tr, y_te = data_generator(256, num_images = 100, rotation_degs= range(0, 91, 10), download_from_cloud=True)
+
+x_tr, x_te, y_tr, y_te = data_generator(128, num_images = 100, rotation_degs= range(20, 360, 20), download_from_cloud=True)
 print()
 print('Loaded {} patches for x_train, and {} for x_test.'.format(len(x_tr), len(x_te)))
 
@@ -21,6 +24,11 @@ def get_args():
         '--job-dir',
         type=str,
         default = './models/'
+    )
+    parser.add_argument(
+        '--job-name',
+        type=str,
+        default='no_dropout'
     )
     args, _ = parser.parse_known_args()
     return args
@@ -37,6 +45,9 @@ y_te = fix_labels(y_te)
 
 
 datagen = ImageDataGenerator(
+    horizontal_flip= True,    
+    vertical_flip= True,
+    rotation_range= 90
 )
 
 
@@ -45,9 +56,9 @@ print(x_tr[0].shape)
 
 args = get_args()
 
-UNET = UNET(args, image_shape = x_tr[0].shape, layers = 4)
+UNET = UNET(args, image_shape = x_tr[0].shape, layers = 3)
 UNET.build_model()
 UNET.describe_model()
 
-UNET.train_generator(datagen, x_tr, y_tr, x_te, y_te, epochs = 150, batch_size = 16)
+UNET.train_generator(datagen, x_tr, y_tr, x_te, y_te, epochs = 200, batch_size = 32)
 

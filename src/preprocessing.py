@@ -95,9 +95,6 @@ def data_generator(patch_size, num_images = 100, train_test_ratio = 0.8, rotatio
     return x_train, x_test, y_train, y_test
 
 
-
-
-
 def lower_res(x, channels, res):
     return np.asarray(resize(x, (res, res, channels)))
 
