@@ -59,6 +59,7 @@ def data_generator(patch_size, num_images = 100, train_test_ratio = 0.8, rotatio
     num_images = len(x_imgs)
     IMG_WIDTH = x_imgs[0].shape[0]
     IMG_HEIGHT = x_imgs[0].shape[1]
+    IMAGE_SIZE = patch_size
 
     assert x_imgs[0].shape[0]%patch_size == 0 , "patch size is not multiple of image width/height"
 
@@ -68,8 +69,14 @@ def data_generator(patch_size, num_images = 100, train_test_ratio = 0.8, rotatio
         x_rotated_imgs = []
         y_rotated_imgs = []
         for i in range(num_images):
-            x_rotated_imgs.append(ndimage.rotate(x_imgs[i], deg, reshape=True, mode='mirror'))
-            y_rotated_imgs.append(ndimage.rotate(y_imgs[i], deg, reshape=True, mode='mirror'))
+            tmp_x = img_crop(ndimage.rotate(x_imgs[i], deg, reshape=True, mode='mirror'), IMAGE_SIZE, IMAGE_SIZE)[0]
+            tmp_y = img_crop(ndimage.rotate(y_imgs[i], deg, reshape=True, mode='mirror'), IMAGE_SIZE, IMAGE_SIZE)[0]
+            x_rotated_imgs.append(tmp_x)
+            x_rotated_imgs.append(np.flip(tmp_x,0))
+            x_rotated_imgs.append(np.flip(tmp_x,1))
+            y_rotated_imgs.append(tmp_y)
+            y_rotated_imgs.append(np.flip(tmp_y,0))
+            y_rotated_imgs.append(np.flip(tmp_y,1))
             
         x_train_rot, x_test_rot, y_train_rot, y_test_rot = patches_split(x_rotated_imgs, y_rotated_imgs, 
                                                                          patch_size, train_test_ratio)
@@ -79,6 +86,8 @@ def data_generator(patch_size, num_images = 100, train_test_ratio = 0.8, rotatio
 
         x_test = np.concatenate([x_test, x_test_rot])
         y_test = np.concatenate([y_test, y_test_rot])
+
+
 
     y_train = np.asarray([y.reshape(patch_size, patch_size, 1) for y in y_train])
     y_test = np.asarray([y.reshape(patch_size, patch_size, 1) for y in y_test])
