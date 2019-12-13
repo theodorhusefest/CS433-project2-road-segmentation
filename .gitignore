@@ -13,3 +13,5 @@
 **/cloud_env
 **/.vscode
 **/logs
+**/models
+**/predictions/

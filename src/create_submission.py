@@ -5,27 +5,27 @@ import matplotlib.image as mpimg
 from skimage.transform import resize
 
 from src.mask_to_submission import masks_to_submission
-from src.preprocessing import add_padding, rotation_crop
+from src.preprocessing import add_padding, rotation_crop, img_crop, patches_to_images
 
 def create_submission(submission_name, model, padding_size = 14, patch_size = 100):
     """
     Function to create submissionfile
-    
     """
     
     # Load images
     test_set = load_test_img()
     
     # Get patches 
-    img_patches = [img_crop(x[i], patch_size, patch_size, padding_size) for i in range(len(test_set))]
+    img_patches = [img_crop(test_set[i], patch_size, patch_size, padding_size) for i in range(len(test_set))]
     img_patches = np.asarray([img_patches[i][j] for i in range(len(img_patches)) for j in range(len(img_patches[i]))])
+    print('Loaded images to patches')
     
     # Predict on given model
     pred_patches = model.predict(img_patches)
     
     # Reassemble to img
-    cropped_pred = [rotation_crop(pred_patch) for pred_patch in pred_patches]
-    predictions = patches_to_images(cropped_pred, patch_size, img_side_len = 600)
+    cropped_pred = [rotation_crop(pred_patch, patch_size, patch_size) for pred_patch in pred_patches]
+    predictions = patches_to_images(np.asarray(cropped_pred), patch_size, img_side_len = 600)
     
     # Fix labels
     predictions[predictions > 0.5] = 1
@@ -40,6 +40,8 @@ def create_submission(submission_name, model, padding_size = 14, patch_size = 10
     masks_to_submission(submission_name, image_names)
     
     print('\nSuccesfully created submission.')
+    
+    return img_patches, cropped_pred
     
 
     

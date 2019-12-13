@@ -77,9 +77,14 @@ def data_generator(patch_size, num_images = 100, train_test_ratio = 0.8, rotatio
             x_rotated_imgs.append(tmp_x)
             x_rotated_imgs.append(np.flip(tmp_x,0))
             x_rotated_imgs.append(np.flip(tmp_x,1))
+            if i < 30:
+                x_rotated_imgs.append(np.flip(x_imgs[i],0))
             y_rotated_imgs.append(tmp_y)
             y_rotated_imgs.append(np.flip(tmp_y,0))
             y_rotated_imgs.append(np.flip(tmp_y,1))
+            
+            if i < 30:
+                y_rotated_imgs.append(np.flip(y_imgs[i],0))
             
         x_train_rot, x_test_rot, y_train_rot, y_test_rot = patches_split(x_rotated_imgs, y_rotated_imgs, 
                                                                          patch_size, train_test_ratio, padding_size)

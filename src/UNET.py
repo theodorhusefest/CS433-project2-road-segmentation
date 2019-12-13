@@ -13,6 +13,8 @@ from keras.models import Model, Sequential
 
 from keras.layers import Conv2D, MaxPool2D, UpSampling2D, Concatenate, Input, Dropout, LeakyReLU
 
+from keras.layers.normalization import BatchNormalization
+
 from keras.optimizers import Adam
 
 from keras.callbacks import ModelCheckpoint, EarlyStopping, CSVLogger, ReduceLROnPlateau, TensorBoard
@@ -50,7 +52,7 @@ class UNET():
         """
 
         print('Building model with {} layers'.format(self.layers))
-        filter_sizes = [2**(5+i) for i in range(self.layers + 1)]
+        filter_sizes = [2**(6+i) for i in range(self.layers + 1)]
         print('Filtersizes being used in UNET: {}'.format(filter_sizes))
 
         
@@ -105,7 +107,9 @@ class UNET():
         """
 
         conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation=self.activation, kernel_initializer="he_normal")(x)
+        conv = BatchNormalization()(conv)
         conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation=self.activation, kernel_initializer="he_normal")(conv)
+        conv = BatchNormalization()(conv)
         if dropout:
             conv = Dropout(self.dropout_rate)(conv)
 
@@ -119,7 +123,9 @@ class UNET():
         concat = Concatenate(axis = 3)([contract_conv, up])
 
         conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation=self.activation, kernel_initializer="he_normal")(concat)
+        conv = BatchNormalization()(conv)
         conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation=self.activation, kernel_initializer="he_normal")(conv)
+        conv = BatchNormalization()(conv)
         if dropout:
             conv = Dropout(self.dropout_rate)(conv)
         return conv
@@ -127,7 +133,9 @@ class UNET():
 
     def bottleneck(self, x, filter_size, kernel_size = (3, 3), padding = 'same', strides = 1):
         conv = Conv2D(filter_size, kernel_size, padding= padding, strides= strides, activation= self.activation, kernel_initializer="he_normal")(x)
+        conv = BatchNormalization()(conv)
         conv = Conv2D(filter_size, kernel_size, padding= padding, strides= strides, activation= self.activation, kernel_initializer="he_normal")(conv)
+        conv = BatchNormalization()(conv)
         conv = Dropout(self.dropout_rate)(conv)
 
         return conv 
