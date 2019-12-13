@@ -11,7 +11,7 @@ import tensorflow as tf
 print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
 
-x_tr, x_te, y_tr, y_te = data_generator(128, num_images = 2, rotation_degs= range(3, 91, 30), download_from_cloud=True)
+x_tr, x_te, y_tr, y_te = data_generator(100, num_images = 100, rotation_degs= range(3, 91, 9), padding_size=14, download_from_cloud=True)
 print()
 print('Loaded {} patches for x_train, and {} for x_test.'.format(len(x_tr), len(x_te)))
 
@@ -28,7 +28,7 @@ def get_args():
     parser.add_argument(
         '--job-name',
         type=str,
-        default='no_dropout'
+        default='100x100_padding'
     )
     args, _ = parser.parse_known_args()
     return args
@@ -57,5 +57,5 @@ UNET = UNET(args, image_shape = x_tr[0].shape, layers = 3)
 UNET.build_model()
 UNET.describe_model()
 
-UNET.train_generator(datagen, x_tr, y_tr, x_te, y_te, epochs = 5, batch_size = 64)
+UNET.train_generator(datagen, x_tr, y_tr, x_te, y_te, epochs = 100, batch_size = 64)
 

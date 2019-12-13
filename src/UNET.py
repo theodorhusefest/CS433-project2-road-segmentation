@@ -31,8 +31,8 @@ class UNET():
         self.lrelu = lambda x: LeakyReLU(alpha=0.1)(x)
         self.activation = self.lrelu
 
-        #self.dir_ = self.args.job_dir + self.args.job_name
-        #self.weights_dir = self.dir_ + '/weights'
+        self.dir_ = self.args.job_dir + self.args.job_name
+        self.weights_dir = self.dir_ + '/weights'
 
         """
         if not os.path.isdir(self.dir_):
@@ -155,12 +155,12 @@ class UNET():
         filepath= self.weights_dir + '/epoch{epoch:02d}_F1{val_f1:.2f}' + datetime.now().strftime("%d_%H.%M") + '.h5'
         #logs_path = self.args.job_name + '.csv'
 
-        checkpoint = ModelCheckpoint(filepath, monitor='val_f1', verbose=1, period=10, save_weights_only= True, save_best_only=True)
+        checkpoint = ModelCheckpoint(filepath, monitor='val_f1', verbose=1, period=10, save_weights_only= True, save_best_only=True, mode='max')
         earlystop = EarlyStopping(monitor='val_f1', verbose=1, patience=30, mode='max', restore_best_weights= True)
-        reduceLR = ReduceLROnPlateau(monitor='loss', verbose= 1, patience = 2, mode='auto', factor=0.3, min_delta=0.001, min_lr=0.0001)
-        tensorboard = TensorBoard(self.dir_, histogram_freq=1, batch_size=64, write_graph=True)
+        reduceLR = ReduceLROnPlateau(monitor='loss', verbose= 1, patience = 2, mode='min', factor=0.8, min_delta=0.005, min_lr=0.0001)
+        #tensorboard = TensorBoard(self.dir_, histogram_freq=1, batch_size=64, write_graph=True)
         #csv_logger = CSVLogger(logs_path, append=True)
-        callbacks_list = [checkpoint, reduceLR, earlystop, tensorboard]
+        callbacks_list = [checkpoint, reduceLR, earlystop]
 
         self.history = self.model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size),
                                 validation_data = (x_val, y_val),
