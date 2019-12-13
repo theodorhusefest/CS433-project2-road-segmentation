@@ -1,4 +1,4 @@
-export JOB_NAME="no_drop2"
+export JOB_NAME="no_drop5"
 export GOOGLE_APPLICATION_CREDENTIALS="secret/CS433-59bd8aae4120.json"
 export REGION="europe-west1"
 export BUCKET_NAME="cs433-ml"

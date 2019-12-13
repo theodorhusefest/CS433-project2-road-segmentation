@@ -12,3 +12,4 @@
 **/__pycache__
 **/cloud_env
 **/.vscode
+**/logs

@@ -13,7 +13,9 @@ from keras.models import Model, Sequential
 
 from keras.layers import Conv2D, MaxPool2D, UpSampling2D, Concatenate, Input, Dropout, LeakyReLU
 
-from keras.callbacks import ModelCheckpoint, EarlyStopping, CSVLogger, LearningRateScheduler
+from keras.optimizers import Adam
+
+from keras.callbacks import ModelCheckpoint, EarlyStopping, CSVLogger, ReduceLROnPlateau, TensorBoard
 
 class UNET():
 
@@ -26,11 +28,11 @@ class UNET():
         self.dropout_rate = 0
         self.model = None
         self.history = None
-        self.lrelu = lambda x: LeakyReLU(alpha=0.01)(x)
-        self.activation = 'relu'
+        self.lrelu = lambda x: LeakyReLU(alpha=0.1)(x)
+        self.activation = self.lrelu
 
-        self.dir_ = self.args.job_dir + self.args.job_name
-        self.weights_dir = self.dir_ + '/weights'
+        #self.dir_ = self.args.job_dir + self.args.job_name
+        #self.weights_dir = self.dir_ + '/weights'
 
         """
         if not os.path.isdir(self.dir_):
@@ -48,7 +50,7 @@ class UNET():
         """
 
         print('Building model with {} layers'.format(self.layers))
-        filter_sizes = [2**(4+i) for i in range(self.layers + 1)]
+        filter_sizes = [2**(5+i) for i in range(self.layers + 1)]
         print('Filtersizes being used in UNET: {}'.format(filter_sizes))
 
         
@@ -62,9 +64,9 @@ class UNET():
 
             print('Bulding contraction layers at layer: {} and filtersize: {}'.format(i+1, filter_sizes[i]))
             if i == self.layers - 1: # If this is last iteration
-                conv, pool = self.contract(pool, filter_sizes[i], dropout= False)
+                conv, pool = self.contract(pool, filter_sizes[i], dropout= True)
             else:
-                conv, pool = self.contract(pool, filter_sizes[i], dropout= False)
+                conv, pool = self.contract(pool, filter_sizes[i], dropout= True)
             
             # Save convolution for expanding phase
             convs.append(conv)
@@ -78,13 +80,15 @@ class UNET():
         for i in range(self.layers-1 , -1, -1):
             print('Building expansion at layer: {} and filtersize: {}'.format(i+1, filter_sizes[i]))
 
-            conv = self.expand(conv, convs[i], filter_sizes[i], dropout= False)
+            conv = self.expand(conv, convs[i], filter_sizes[i], dropout= True)
 
         conv = Conv2D(filter_sizes[0], (3, 3), padding='same', activation= self.activation, kernel_initializer="he_normal")(conv)
-        outputs = Conv2D(1, (1,1), padding= 'same', activation='sigmoid', kernel_initializer="he_normal")(conv)
+        outputs = Conv2D(1, (1,1), padding= 'same', activation='sigmoid')(conv)
+
 
         self.model = Model(inputs, outputs)
         print("Compiling model...")
+        opt = Adam(learning_rate=0.02)
         self.model.compile(optimizer='adam', loss = 'binary_crossentropy', metrics = [f1, precision, recall, 'accuracy'])
         print("Model compiled.")
 
@@ -124,7 +128,7 @@ class UNET():
     def bottleneck(self, x, filter_size, kernel_size = (3, 3), padding = 'same', strides = 1):
         conv = Conv2D(filter_size, kernel_size, padding= padding, strides= strides, activation= self.activation, kernel_initializer="he_normal")(x)
         conv = Conv2D(filter_size, kernel_size, padding= padding, strides= strides, activation= self.activation, kernel_initializer="he_normal")(conv)
-        #conv = Dropout(self.dropout_rate)(conv)
+        conv = Dropout(self.dropout_rate)(conv)
 
         return conv 
 
@@ -148,13 +152,15 @@ class UNET():
         print('Training using generator')
 
 
-        filepath= self.weights_dir + '/epoch{epoch:02d}_' + datetime.now().strftime("%d_%H.%M") + '.h5'
-        logs_path = self.args.job_name + '.csv'
+        filepath= self.weights_dir + '/epoch{epoch:02d}_F1{val_f1:.2f}' + datetime.now().strftime("%d_%H.%M") + '.h5'
+        #logs_path = self.args.job_name + '.csv'
 
-        checkpoint = ModelCheckpoint(filepath, monitor='val_accuracy', verbose=1, period=10, save_weights_only= True)
-        earlystop = EarlyStopping(monitor='val_f1', verbose=1, patience=11, mode='max', restore_best_weights= True)
-        csv_logger = CSVLogger(logs_path, append=True)
-        callbacks_list = [checkpoint, csv_logger]
+        checkpoint = ModelCheckpoint(filepath, monitor='val_f1', verbose=1, period=10, save_weights_only= True, save_best_only=True)
+        earlystop = EarlyStopping(monitor='val_f1', verbose=1, patience=30, mode='max', restore_best_weights= True)
+        reduceLR = ReduceLROnPlateau(monitor='loss', verbose= 1, patience = 2, mode='auto', factor=0.3, min_delta=0.001, min_lr=0.0001)
+        tensorboard = TensorBoard(self.dir_, histogram_freq=1, batch_size=64, write_graph=True)
+        #csv_logger = CSVLogger(logs_path, append=True)
+        callbacks_list = [checkpoint, reduceLR, earlystop, tensorboard]
 
         self.history = self.model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size),
                                 validation_data = (x_val, y_val),
