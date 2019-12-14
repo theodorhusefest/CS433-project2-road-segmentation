@@ -82,7 +82,7 @@ def data_generator(patch_size, num_images = 100, train_test_ratio = 0.8, rotatio
             y_rotated_imgs.append(tmp_y)
             y_rotated_imgs.append(np.flip(tmp_y,0))
             y_rotated_imgs.append(np.flip(tmp_y,1))
-            
+
             if i < 30:
                 y_rotated_imgs.append(np.flip(y_imgs[i],0))
             

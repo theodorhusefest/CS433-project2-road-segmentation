@@ -59,7 +59,7 @@ def load_test_img(filepath = './data/test_set_images/', img_size = 600, padding_
     test_imgs =[]
     
     # Load all images
-    num_images = 50
+    num_images = 2
     for i in range(1, num_images+1):
         test_id = 'test_' + str(i)
         image_path = filepath + test_id + '/' + test_id + '.png'
@@ -82,7 +82,7 @@ def save_test_img(pred, filepath = './predictions/'):
     image_names = []
     
     # Load all images
-    num_images = 50
+    num_images = 2
     if not os.path.isdir(filepath):
         os.mkdir(filepath)
         

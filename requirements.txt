@@ -3,7 +3,7 @@ pandas
 matplotlib
 scipy
 scikit-image
-requests
+opencv-python
 
 tensorflow>=1.13,<2
-Keras>=2.2.4
+Keras>=2.1.6

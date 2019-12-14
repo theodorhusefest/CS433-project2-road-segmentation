@@ -17,6 +17,8 @@ from keras.layers.normalization import BatchNormalization
 
 from keras.optimizers import Adam
 
+from keras.utils import multi_gpu_model
+
 from keras.callbacks import ModelCheckpoint, EarlyStopping, CSVLogger, ReduceLROnPlateau, TensorBoard
 
 class UNET():
@@ -30,11 +32,8 @@ class UNET():
         self.dropout_rate = 0
         self.model = None
         self.history = None
-        self.lrelu = lambda x: LeakyReLU(alpha=0.1)(x)
+        self.lrelu = lambda x: LeakyReLU(alpha=0.01)(x)
         self.activation = self.lrelu
-
-        self.dir_ = self.args.job_dir + self.args.job_name
-        self.weights_dir = self.dir_ + '/weights'
 
         """
         if not os.path.isdir(self.dir_):
@@ -45,7 +44,7 @@ class UNET():
         """
 
 
-    def build_model(self):
+    def build_model(self, num_gpus):
         """
         Builds the model for a general number of layers.
         Contains three phases, contracting, bottleneck and expansion.
@@ -89,10 +88,18 @@ class UNET():
 
 
         self.model = Model(inputs, outputs)
+
+        if num_gpus > 1:
+            self.model = multi_gpu_model(self.model, num_gpus)
+            print("Model running on {} GPU's.".format(num_gpus))
+
         print("Compiling model...")
         opt = Adam(learning_rate=0.02)
         self.model.compile(optimizer='adam', loss = 'binary_crossentropy', metrics = [f1, precision, recall, 'accuracy'])
         print("Model compiled.")
+
+
+
 
 
     def contract(self, x, filter_size, kernel_size = (3, 3), padding = 'same', strides = 1, dropout= False):
@@ -140,7 +147,6 @@ class UNET():
 
         return conv 
 
-
     def describe_model(self):
         if self.model == None:
             print('Cannot find any model')
@@ -158,14 +164,16 @@ class UNET():
 
     def train_generator(self, datagen, x_train, y_train, x_val, y_val, epochs, batch_size):
         print('Training using generator')
-
+        
+        self.dir_ = self.args.job_dir + self.args.job_name
+        self.weights_dir = self.dir_
 
         filepath= self.weights_dir + '/epoch{epoch:02d}_F1{val_f1:.2f}' + datetime.now().strftime("%d_%H.%M") + '.h5'
         #logs_path = self.args.job_name + '.csv'
 
-        checkpoint = ModelCheckpoint(filepath, monitor='val_f1', verbose=1, period=10, save_weights_only= True, save_best_only=True, mode='max')
-        earlystop = EarlyStopping(monitor='val_f1', verbose=1, patience=30, mode='max', restore_best_weights= True)
-        reduceLR = ReduceLROnPlateau(monitor='loss', verbose= 1, patience = 2, mode='min', factor=0.8, min_delta=0.005, min_lr=0.0001)
+        checkpoint = ModelCheckpoint(filepath, monitor='val_f1', verbose=1, period=1, save_weights_only= True, save_best_only=True, mode='max')
+        earlystop = EarlyStopping(monitor='val_f1', verbose=1, patience=20, mode='max', restore_best_weights= True)
+        reduceLR = ReduceLROnPlateau(monitor='loss', verbose= 1, patience = 3, mode='min', factor=0.9, min_delta=0.005, min_lr=0.00001)
         #tensorboard = TensorBoard(self.dir_, histogram_freq=1, batch_size=64, write_graph=True)
         #csv_logger = CSVLogger(logs_path, append=True)
         callbacks_list = [checkpoint, reduceLR, earlystop]

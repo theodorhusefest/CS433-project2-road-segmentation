@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-REQUIRED_PACKAGES = ['matplotlib', 'scikit-image', 'keras']
+REQUIRED_PACKAGES = ['matplotlib', 'scikit-image', 'keras', 'opencv-python']
 
 setup(
     name='src',
