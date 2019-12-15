@@ -99,9 +99,6 @@ class UNET():
         print("Model compiled.")
 
 
-
-
-
     def contract(self, x, filter_size, kernel_size = (3, 3), padding = 'same', strides = 1, dropout= False):
         """
         Contracting phase of the model.
@@ -168,15 +165,15 @@ class UNET():
         self.dir_ = self.args.job_dir + self.args.job_name
         self.weights_dir = self.dir_
 
-        filepath= self.weights_dir + '/epoch{epoch:02d}_F1{val_f1:.2f}' + datetime.now().strftime("%d_%H.%M") + '.h5'
+        filepath= self.weights_dir + '/epoch{epoch:02d}_F1{val_f1:.2f}_' + datetime.now().strftime("%H.%M") + '.h5'
         #logs_path = self.args.job_name + '.csv'
 
         checkpoint = ModelCheckpoint(filepath, monitor='val_f1', verbose=1, period=1, save_weights_only= True, save_best_only=True, mode='max')
         earlystop = EarlyStopping(monitor='val_f1', verbose=1, patience=20, mode='max', restore_best_weights= True)
-        reduceLR = ReduceLROnPlateau(monitor='loss', verbose= 1, patience = 3, mode='min', factor=0.9, min_delta=0.005, min_lr=0.00001)
-        #tensorboard = TensorBoard(self.dir_, histogram_freq=1, batch_size=64, write_graph=True)
+        reduceLR = ReduceLROnPlateau(monitor='loss', verbose= 1, patience = 3, mode='min', facto r=0.9, min_delta=0.005, min_lr=0.00001)
+        tensorboard = TensorBoard(self.dir_, histogram_freq=1, batch_size=batch_size, write_graph=True)
         #csv_logger = CSVLogger(logs_path, append=True)
-        callbacks_list = [checkpoint, reduceLR, earlystop]
+        callbacks_list = [checkpoint, reduceLR, earlystop, tensorboard]
 
         self.history = self.model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size),
                                 validation_data = (x_val, y_val),

@@ -1,14 +1,14 @@
 trainingInput:
   scaleTier: CUSTOM
   # Configure a master worker with 4 K80 GPUs
-  masterType: n1-standard-32
+  masterType: n1-highmem-16
   masterConfig:
     acceleratorConfig:
-      count: 8
-      type: NVIDIA_TESLA_K80
+      count: 4
+      type: NVIDIA_TESLA_P100
   # Configure 9 workers, each with 4 K80 GPUs
   workerCount: 0
-  workerType: n1-highcpu-16
+  workerType: n1-highmem-16
   workerConfig:
     acceleratorConfig:
       count: 0

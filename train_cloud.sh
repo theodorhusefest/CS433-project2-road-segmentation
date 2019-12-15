@@ -1,4 +1,4 @@
-export JOB_NAME="padded_400_filt_6_lay4_4"
+export JOB_NAME="padded_200_filt_6_lay4_final"
 export GOOGLE_APPLICATION_CREDENTIALS="secret/CS433-59bd8aae4120.json"
 export REGION="europe-west1"
 export BUCKET_NAME="cs433-ml"
