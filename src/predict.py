@@ -36,7 +36,7 @@ with ZipFile('test_set_images.zip', 'r') as zipObj:
 # Build model
 UNET = UNET(args, image_shape = IMAGE_SHAPE, layers = 4)
 UNET.build_model(num_gpus= 4)
-model = UNET.get_model()
+model = UNET.model
 
 
 # Read weights file from Bucket

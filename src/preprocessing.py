@@ -67,6 +67,7 @@ def data_generator(patch_size, num_images = 100, train_test_ratio = 0.8, rotatio
     num_images = len(x_imgs)
 
     assert (x_imgs[0].shape[0] - padding_size*2)%patch_size == 0 , "patch size is not multiple of image width/height"
+
     if rotation_degs:
         rotated_x_imgs = np.asarray([rotate_image(x_imgs[i], deg) for deg in rotation_degs for i in range(num_images)])
         rotated_y_imgs = np.asarray([rotate_image(y_imgs[i], deg) for deg in rotation_degs for i in range(num_images)])
@@ -84,7 +85,11 @@ def data_generator(patch_size, num_images = 100, train_test_ratio = 0.8, rotatio
     
     x_train, x_test, y_train, y_test = patches_split(x_imgs, y_imgs, patch_size, train_test_ratio, padding_size)
 
+    y_train = prepare_labels(y_train)
+    y_test = prepare_labels(y_test)
+
     return x_train, x_test, y_train, y_test
+
 
 def rotate_image(img, deg, crop=True):
     """
@@ -98,6 +103,7 @@ def rotate_image(img, deg, crop=True):
     if crop:
         rotated_img = rotation_crop(rotated_img, IMG_SIDE_LEN, IMG_SIDE_LEN)
     return rotated_img
+
 
 def rotation_crop(im, w, h):
     """
@@ -116,8 +122,6 @@ def rotation_crop(im, w, h):
         im_patch = im[padding:w+padding, padding:h+padding,: ]
     return im_patch
 
-def lower_res(x, channels, res):
-    return np.asarray(resize(x, (res, res, channels)))
 
 def add_padding(img, padding_size, channels):
     """
@@ -180,6 +184,15 @@ def patches_split(x, y, patch_size, split, padding_size):
     
     return x_train, x_test, y_train, y_test
 
+
+def prepare_labels(y):
+    """
+    Converts greyscale image into binary values. 1 = road, 0 = not-road
+    """
+    y[y >= 0.5] = 1
+    y[y < 0.5] = 0
+
+    return y.astype(int)
 
 
 def patches_to_images(patches, patch_size, img_side_len=400):

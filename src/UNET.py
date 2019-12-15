@@ -23,15 +23,13 @@ from keras.callbacks import ModelCheckpoint, EarlyStopping, CSVLogger, ReduceLRO
 
 class UNET():
 
-    def __init__(self, args, image_shape = (400, 400, 3), layers = 2):
+    def __init__(self, args, image_shape = (400, 400, 3), depth = 2):
 
         self.args = args
         self.IMAGE_SIZE = image_shape[0]
         self.IMAGE_SHAPE = image_shape
-        self.layers = layers
-        self.dropout_rate = 0
+        self.depth = depth
         self.model = None
-        self.history = None
         self.lrelu = lambda x: LeakyReLU(alpha=0.01)(x)
         self.activation = self.lrelu
 
@@ -46,42 +44,28 @@ class UNET():
 
     def build_model(self, num_gpus):
         """
-        Builds the model for a general number of layers.
+        Builds the model for a general number of depth.
         Contains three phases, contracting, bottleneck and expansion.
         """
 
-        print('Building model with {} layers'.format(self.layers))
-        filter_sizes = [2**(6+i) for i in range(self.layers + 1)]
-        print('Filtersizes being used in UNET: {}'.format(filter_sizes))
+        filter_sizes = [2**(6+i) for i in range(self.depth + 1)]   # [64, 128, 256, 512, 1024]
 
-        
         inputs = Input(self.IMAGE_SHAPE)
         pool = inputs
 
         convs = []
 
         # Contracting 
-        for i in range(self.layers):
-
-            print('Bulding contraction layers at layer: {} and filtersize: {}'.format(i+1, filter_sizes[i]))
-            if i == self.layers - 1: # If this is last iteration
-                conv, pool = self.contract(pool, filter_sizes[i], dropout= True)
-            else:
-                conv, pool = self.contract(pool, filter_sizes[i], dropout= True)
-            
+        for i in range(self.depth):
+            conv, pool = self.contract(pool, filter_sizes[i])
             # Save convolution for expanding phase
             convs.append(conv)
-
-        # Bottleneck
-        print('Building bottleneck at layer: {} and filtersize: {}'.format(self.layers, filter_sizes[-1]))
 
         conv = self.bottleneck(pool, filter_sizes[-1])
 
         # Expansion
-        for i in range(self.layers-1 , -1, -1):
-            print('Building expansion at layer: {} and filtersize: {}'.format(i+1, filter_sizes[i]))
-
-            conv = self.expand(conv, convs[i], filter_sizes[i], dropout= True)
+        for i in range(self.depth-1 , -1, -1):
+            conv = self.expand(conv, convs[i], filter_sizes[i])
 
         conv = Conv2D(filter_sizes[0], (3, 3), padding='same', activation= self.activation, kernel_initializer="he_normal")(conv)
         outputs = Conv2D(1, (1,1), padding= 'same', activation='sigmoid')(conv)
@@ -93,13 +77,11 @@ class UNET():
             self.model = multi_gpu_model(self.model, num_gpus)
             print("Model running on {} GPU's.".format(num_gpus))
 
-        print("Compiling model...")
-        opt = Adam(learning_rate=0.02)
+        opt = Adam(learning_rate=0.02) 
         self.model.compile(optimizer='adam', loss = 'binary_crossentropy', metrics = [f1, precision, recall, 'accuracy'])
-        print("Model compiled.")
 
 
-    def contract(self, x, filter_size, kernel_size = (3, 3), padding = 'same', strides = 1, dropout= False):
+    def contract(self, x, filter_size, kernel_size = (3, 3), padding = 'same', strides = 1):
         """
         Contracting phase of the model.
         Consists of two layers with convoluton, before a before a max pooling which reduces the dimentionality by two.
@@ -110,15 +92,13 @@ class UNET():
         conv = BatchNormalization()(conv)
         conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation=self.activation, kernel_initializer="he_normal")(conv)
         conv = BatchNormalization()(conv)
-        if dropout:
-            conv = Dropout(self.dropout_rate)(conv)
 
         pool = MaxPool2D(pool_size = (2,2))(conv)
         
         return conv, pool
 
 
-    def expand(self, x, contract_conv, filter_size, kernel_size = (3, 3), padding = 'same', strides = 1, dropout = False):
+    def expand(self, x, contract_conv, filter_size, kernel_size = (3, 3), padding = 'same', strides = 1):
         """
         Expanding phase of the model.
         First an up-sampling which doubles the dimentionality, before two convolutinal layers.
@@ -132,21 +112,19 @@ class UNET():
         conv = BatchNormalization()(conv)
         conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation=self.activation, kernel_initializer="he_normal")(conv)
         conv = BatchNormalization()(conv)
-        if dropout:
-            conv = Dropout(self.dropout_rate)(conv)
+
         return conv
 
 
     def bottleneck(self, x, filter_size, kernel_size = (3, 3), padding = 'same', strides = 1):
         """
-        
+        The bottleneck is the lowest level in the model.
+        Two convolutions followed by batchNormalization
         """
-
         conv = Conv2D(filter_size, kernel_size, padding= padding, strides= strides, activation= self.activation, kernel_initializer="he_normal")(x)
         conv = BatchNormalization()(conv)
         conv = Conv2D(filter_size, kernel_size, padding= padding, strides= strides, activation= self.activation, kernel_initializer="he_normal")(conv)
         conv = BatchNormalization()(conv)
-        conv = Dropout(self.dropout_rate)(conv)
 
         return conv 
 
@@ -154,7 +132,6 @@ class UNET():
         """
         Produces a summary if model is available
         """
-
         if self.model == None:
             print('Cannot find any model')
         else:
@@ -167,8 +144,7 @@ class UNET():
         Takes in train and validation data.
         Also creates callbacks
         """
-        
-        # Set path to Google Cloud bucket based on command line args
+        # Set path from command line args
         self.dir_ = self.args.job_dir + self.args.job_name
         filepath= self.dir_ + '/epoch{epoch:02d}_F1{val_f1:.2f}_' + datetime.now().strftime("%H.%M") + '.h5'
 
@@ -189,8 +165,8 @@ class UNET():
         tensorboard = TensorBoard(self.dir_, histogram_freq=1, batch_size=batch_size, write_graph=True)
         callbacks_list = [checkpoint, reduceLR, earlystop, tensorboard]
 
-        # Trains the model
-        self.history = self.model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size),
+        # Train model
+        self.model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size),
                                 validation_data = (x_val, y_val),
                                 steps_per_epoch = len(x_train)/batch_size, epochs = epochs,
                                 callbacks=callbacks_list)
@@ -205,7 +181,3 @@ class UNET():
         """
         filepath= self.weights_dir + '/FINISHED' + datetime.now().strftime("%d_%H.%M") + '.h5'
         self.model.save_weights(filepath)
-
-
-    def get_model(self):
-        return self.model

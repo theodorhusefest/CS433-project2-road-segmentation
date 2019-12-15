@@ -32,22 +32,20 @@ def create_submission(submission_name, model, padding_size = 14, patch_size = 10
     predictions[predictions <= 0.5] = 0
     
     # Scale back up
-    predictions = np.asarray([resize(predictions[i], (608, 608, 1)) for i in range(len(predictions))])
+    predictions = change_res(predictions, 1, 608)
     
     # Save predictions as imgs, and keep the names
     image_names = save_test_img(predictions)
     
     masks_to_submission(submission_name, image_names)
     
-    print('\nSuccesfully created submission.')
-    
-    return img_patches, cropped_pred
+    print('Succesfully created submission.')
     
 
     
-def lower_res(x, channels, res):
+def change_res(x, channels, res):
     """
-    Helper file to change resultion of photo
+    Helper file to change resolution of photo
     """
     return np.asarray(resize(x, (res, res, channels)))
 
