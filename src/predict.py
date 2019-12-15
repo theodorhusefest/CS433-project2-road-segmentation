@@ -38,8 +38,9 @@ UNET = UNET(args, image_shape = IMAGE_SHAPE, layers = 4)
 UNET.build_model(num_gpus= 4)
 model = UNET.get_model()
 
+
 # Read weights file from Bucket
-blob_weights = bucket.blob('keras-job-dir/no_padd_400_filt_6_lay4/epoch19_F10.98_13.50.h5')
+blob_weights = bucket.blob('keras-job-dir/padded_200_filt_6_lay4_final/epoch26_F10.98_13.50.h5')
 blob_weights.download_to_filename('weights.h5')
 
 # Load the model with weights and predict

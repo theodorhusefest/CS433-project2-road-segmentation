@@ -6,7 +6,7 @@ import math
 import matplotlib.image as mpimg
 import numpy as np
 
-label_file = 'patches_sub.csv'
+label_file = 'MEGA_BIG_BOY.csv'
 
 h = 16
 w = h

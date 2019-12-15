@@ -1,4 +1,4 @@
-export JOB_NAME="predict_cloud18"
+export JOB_NAME="predict_cloud19"
 export GOOGLE_APPLICATION_CREDENTIALS="secret/CS433-59bd8aae4120.json"
 export REGION="europe-west1"
 export BUCKET_NAME="cs433-ml"
