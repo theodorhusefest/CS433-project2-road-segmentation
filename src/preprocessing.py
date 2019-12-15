@@ -147,6 +147,14 @@ def img_crop(im, w, h, p):
             list_patches.append(im_patch)
     return list_patches
 
+def prepare_labels(y):
+    """
+    Converts greyscale image into binary values. 1 = road, 0 = not-road
+    """
+    y[y >= 0.5] = 1
+    y[y < 0.5] = 0
+
+    return y.astype(int)
 
 def patches_split(x, y, patch_size, split, padding_size):
     assert len(x) == len(y), "Length of x and y has to be the same"

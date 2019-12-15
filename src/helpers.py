@@ -2,6 +2,7 @@
 """ Contains all basic helperfunctions, e.g load_image()"""
 
 import os,sys
+import argparse
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
@@ -89,3 +90,23 @@ def img_crop(img, w:int, h:int):
             cropped_img.append(img_patch)
             
     return cropped_img
+
+
+def get_args():
+    """
+    Parses arguments passed in command line.
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--job-dir',
+        type=str,
+        default = './models/'
+    )
+    parser.add_argument(
+        '--job-name',
+        type=str,
+        default=''
+    )
+    args, _ = parser.parse_known_args()
+    return args
+

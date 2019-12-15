@@ -102,12 +102,8 @@ class UNET():
     def contract(self, x, filter_size, kernel_size = (3, 3), padding = 'same', strides = 1, dropout= False):
         """
         Contracting phase of the model.
-        Consists of two layers with convoluton, before a before a pooling phase which reduces the dimentionality.
-        The last contraction before the bottleneck there is a dropout-phase.
-
-        params:
-            x: data to be contracted
-            filter_size: w
+        Consists of two layers with convoluton, before a before a max pooling which reduces the dimentionality by two.
+        BatchNormalization is added after each activation-function to prevent overfitting.
         """
 
         conv = Conv2D(filter_size, kernel_size, padding=padding, strides=strides, activation=self.activation, kernel_initializer="he_normal")(x)
@@ -123,6 +119,12 @@ class UNET():
 
 
     def expand(self, x, contract_conv, filter_size, kernel_size = (3, 3), padding = 'same', strides = 1, dropout = False):
+        """
+        Expanding phase of the model.
+        First an up-sampling which doubles the dimentionality, before two convolutinal layers.
+        Consists of two layers with convoluton, before a before a pooling phase which reduces the dimentionality.
+        BatchNormalization is added after each activation-function to prevent overfitting.
+        """
         up = UpSampling2D(size = (2, 2))(x)
         concat = Concatenate(axis = 3)([contract_conv, up])
 
@@ -136,6 +138,10 @@ class UNET():
 
 
     def bottleneck(self, x, filter_size, kernel_size = (3, 3), padding = 'same', strides = 1):
+        """
+        
+        """
+
         conv = Conv2D(filter_size, kernel_size, padding= padding, strides= strides, activation= self.activation, kernel_initializer="he_normal")(x)
         conv = BatchNormalization()(conv)
         conv = Conv2D(filter_size, kernel_size, padding= padding, strides= strides, activation= self.activation, kernel_initializer="he_normal")(conv)
@@ -145,62 +151,61 @@ class UNET():
         return conv 
 
     def describe_model(self):
+        """
+        Produces a summary if model is available
+        """
+
         if self.model == None:
             print('Cannot find any model')
         else:
             self.model.summary()
 
 
-    def train_model(self, x_train, y_train, x_val, y_val, epochs, batch_size):
-        print()
-        print('Training model')
-        self.model.fit(x= x_train, y = y_train,  
-                       validation_data =(x_val, y_val), 
-                       epochs=epochs, batch_size = batch_size)
-
-
     def train_generator(self, datagen, x_train, y_train, x_val, y_val, epochs, batch_size):
-        print('Training using generator')
+        """
+        Function that trains the model.
+        Takes in train and validation data.
+        Also creates callbacks
+        """
         
+        # Set path to Google Cloud bucket based on command line args
         self.dir_ = self.args.job_dir + self.args.job_name
-        self.weights_dir = self.dir_
+        filepath= self.dir_ + '/epoch{epoch:02d}_F1{val_f1:.2f}_' + datetime.now().strftime("%H.%M") + '.h5'
 
-        filepath= self.weights_dir + '/epoch{epoch:02d}_F1{val_f1:.2f}_' + datetime.now().strftime("%H.%M") + '.h5'
-        #logs_path = self.args.job_name + '.csv'
+        # Saves the model each time validation f1 increases
+        checkpoint = ModelCheckpoint(filepath, monitor='val_f1', verbose=1, period=1, 
+                                        save_weights_only= True, 
+                                        save_best_only=True, mode='max')
 
-        checkpoint = ModelCheckpoint(filepath, monitor='val_f1', verbose=1, period=1, save_weights_only= True, save_best_only=True, mode='max')
-        earlystop = EarlyStopping(monitor='val_f1', verbose=1, patience=20, mode='max', restore_best_weights= True)
-        reduceLR = ReduceLROnPlateau(monitor='loss', verbose= 1, patience = 3, mode='min', facto r=0.9, min_delta=0.005, min_lr=0.00001)
+        # Quits training if val_f1 is not increasing for 20 epochs
+        earlystop = EarlyStopping(monitor='val_f1', verbose=1, patience=20,
+                                         mode='max', restore_best_weights= True)
+
+        # Reduces learning rate if the loss is non-decreasing for 3 epochs
+        reduceLR = ReduceLROnPlateau(monitor='loss', verbose= 1, patience = 3,
+                                         mode='min', factor=0.9, min_delta=0.001, min_lr=0.00001)
+
+        # Keeps a log of training
         tensorboard = TensorBoard(self.dir_, histogram_freq=1, batch_size=batch_size, write_graph=True)
-        #csv_logger = CSVLogger(logs_path, append=True)
         callbacks_list = [checkpoint, reduceLR, earlystop, tensorboard]
 
+        # Trains the model
         self.history = self.model.fit_generator(datagen.flow(x_train, y_train, batch_size = batch_size),
                                 validation_data = (x_val, y_val),
                                 steps_per_epoch = len(x_train)/batch_size, epochs = epochs,
                                 callbacks=callbacks_list)
 
+        # Saves the model after training
         self.save_model()
 
 
-    def save_model(self, filename  = ''):
-        print("Saving Model")
-    
+    def save_model(self):
+        """
+        Saves model to given filepath.
+        """
         filepath= self.weights_dir + '/FINISHED' + datetime.now().strftime("%d_%H.%M") + '.h5'
         self.model.save_weights(filepath)
 
-
-    def load_weights(self, model_filename, weights_filename):
-        print()
-        print('Loading Model')
-        #self.model.load('./models/' + model_filename)
-        self.model.load_weights('./models/' + weights_filename)
-        
-        
-    def predict(self, x_test):
-        print()
-        print('Predicting on {} images'.format(x_test.shape[0]))
-        self.model.predict(x_test)
 
     def get_model(self):
         return self.model
