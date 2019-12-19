@@ -16,4 +16,4 @@ Before running the program make sure to unzip the files in the data folder.
 To run the program call ```python3 run.py ``` from root directory to create submission with best pre-trained model.  
 To retrain the model use: ```python3 run.py --train```.
 
-The best model is trained with 4 GPU's and need 4 GPU's to create a new submission. This is an error in Keras, but there is no problem when training a new model.
+The model used in the final submission is trained with 4 GPU's and need 4 GPU's to predict and create a new submission. This is an error in Keras, and can be fixed with retraining.
