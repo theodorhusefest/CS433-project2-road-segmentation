@@ -9,18 +9,17 @@ from scipy import ndimage, misc
 import matplotlib.image as mpimg
 from skimage.transform import resize
 
-#from google.cloud import storage
 from zipfile import ZipFile
 
-def load_all_imgs(num_images, padding_size, destination):
+def load_all_imgs(num_images, padding_size, data_path):
     x_imgs = []
     y_imgs = []
 
     # Load all images
     for i in range(1, num_images+1):
         imageid = "satImage_%.3d" % i
-        x_image_filename = destination + '/training/images/' + imageid + '.png'
-        y_image_filename = destination + '/training/groundtruth/' + imageid + '.png'
+        x_image_filename = data_path + '/training/images/' + imageid + '.png'
+        y_image_filename = data_path + '/training/groundtruth/' + imageid + '.png'
 
         if os.path.isfile(x_image_filename) and os.path.isfile(y_image_filename):
             x_img = mpimg.imread(x_image_filename)
@@ -38,31 +37,16 @@ def load_all_imgs(num_images, padding_size, destination):
     return x_imgs, y_imgs
 
 
-def data_generator(patch_size, num_images = 100, train_test_ratio = 0.8, rotation_degs = [], download_from_cloud= False, padding_size = 28,
-                   DATAPATH = "gs://cs433-ml/data/training.zip"):
+def data_generator(patch_size, num_images = 100, train_test_ratio = 0.8, rotation_degs = [], padding_size = 28,
+                   data_path = "./data"):
     """
     Generate data from images, contruct patches and split data into train/test set
     
     Returns:
         x_train, x_test, y_train, y_test
     """
-    
-    if download_from_cloud:
-        BUCKETNAME = 'cs433-ml'
-        DESTINATION = './temp2'
-
-        storage_client = storage.Client()
-        bucket = storage_client.bucket(BUCKETNAME)
-        blob = bucket.blob('data/training.zip')
-        blob.download_to_filename('temp.zip')
-
-        with ZipFile('temp.zip', 'r') as zipObj:
-            zipObj.extractall('temp2')
-
-    else:
-        DESTINATION = './data'
         
-    x_imgs, y_imgs = load_all_imgs(num_images, padding_size, DESTINATION)
+    x_imgs, y_imgs = load_all_imgs(num_images, padding_size, data_path)
     
     num_images = len(x_imgs)
 

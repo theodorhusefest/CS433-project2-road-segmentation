@@ -18,7 +18,6 @@ def create_submission(submission_name, model, padding_size = 14, patch_size = 10
     # Get patches 
     img_patches = [img_crop(test_set[i], patch_size, patch_size, padding_size) for i in range(len(test_set))]
     img_patches = np.asarray([img_patches[i][j] for i in range(len(img_patches)) for j in range(len(img_patches[i]))])
-    print('Loaded images to patches')
     print('Shape of img_patches', img_patches.shape)
     # Predict on given model
     pred_patches = model.predict(img_patches)
@@ -40,17 +39,8 @@ def create_submission(submission_name, model, padding_size = 14, patch_size = 10
     masks_to_submission(submission_name, image_names)
     
     print('Succesfully created submission.')
-    
 
-    
-def change_res(x, channels, res):
-    """
-    Helper file to change resolution of photo
-    """
-    return np.asarray(resize(x, (res, res, channels)))
-
-
-def load_test_img(filepath = './test_set_images/test_set_images/', img_size = 600, padding_size = 14):
+def load_test_img(filepath = './data/test_set_images/', img_size = 600, padding_size = 14):
     """
     Loads all test images on and returns them as
     """
@@ -63,7 +53,7 @@ def load_test_img(filepath = './test_set_images/test_set_images/', img_size = 60
         image_path = filepath + test_id + '/' + test_id + '.png'
 
         if os.path.isfile(image_path):
-            test_img = lower_res(mpimg.imread(image_path), 3, img_size)
+            test_img = change_res(mpimg.imread(image_path), 3, img_size)
             test_img = add_padding(test_img, padding_size, 3)
             test_imgs.append(test_img)
         else:
@@ -96,4 +86,8 @@ def save_test_img(pred, filepath = './predictions/'):
         
     return image_names
 
-
+def change_res(x, channels, res):
+    """
+    Helper file to change resolution of photo
+    """
+    return np.asarray(resize(x, (res, res, channels)))

@@ -1,32 +1,19 @@
-# Project Road Segmentation
+# Road Segmentation Project - EPFL Autumn 2019
 
-For this choice of project task, we provide a set of satellite images acquired 
-from GoogleMaps. We also provide ground-truth images where each pixel is labeled 
-as road or background. 
+Project Members:
+- Anna Vera Linnea Fristedt Andersson
+- Erik Agaton Sjöberg
+- Theodor Tveit Husefest
 
-Your task is to train a classifier to segment roads in these images, i.e. 
-assigns a label `road=1, background=0` to each pixel.
+Best submission 0.902 - #29400 on AICrowd.
 
-Submission system environment setup:
+## How to run
 
-1. The dataset is available from the 
-[CrowdAI page](https://www.crowdai.org/challenges/epfl-ml-road-segmentation).
+Install required packages with either ```pip install -r requirements.txt``` or ```conda install requirements.txt```.
 
-2. Obtain the python notebook `segment_aerial_images.ipynb` from this github 
-folder, to see example code on how to extract the images as well as 
-corresponding labels of each pixel.
+Before running the program make sure to unzip the files in the data folder.  
 
-The notebook shows how to use `scikit learn` to generate features from each 
-pixel, and finally train a linear classifier to predict whether each pixel is 
-road or background. Or you can use your own code as well. Our example code here 
-also provides helper functions to visualize the images, labels and predictions. 
-In particular, the two functions `mask_to_submission.py` and 
-`submission_to_mask.py` help you to convert from the submission format to a 
-visualization, and vice versa.
+To run the program call ```python3 run.py ``` from root directory to create submission with best pre-trained model.  
+To retrain the model use: ```python3 run.py --train```.
 
-3. As a more advanced approach, try `tf_aerial_images.py`, which demonstrates 
-the use of a basic convolutional neural network in TensorFlow for the same 
-prediction task.
-
-Evaluation Metric:
- [F1 score](https://en.wikipedia.org/wiki/F1_score)
+The best model is trained with 4 GPU's and need 4 GPU's to create a new submission. This is an error in Keras, but there is no problem when training a new model.

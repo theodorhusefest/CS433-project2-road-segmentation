@@ -26,21 +26,11 @@ class UNET():
     def __init__(self, args, image_shape = (400, 400, 3), depth = 2):
 
         self.args = args
-        self.IMAGE_SIZE = image_shape[0]
         self.IMAGE_SHAPE = image_shape
         self.depth = depth
         self.model = None
         self.lrelu = lambda x: LeakyReLU(alpha=0.01)(x)
         self.activation = self.lrelu
-
-        """
-        if not os.path.isdir(self.dir_):
-            os.mkdir(self.dir_)
-        
-        if not os.path.isdir(self.weights_dir):
-            os.mkdir(self.weights_dir)
-        """
-
 
     def build_model(self, num_gpus):
         """
@@ -48,7 +38,7 @@ class UNET():
         Contains three phases, contracting, bottleneck and expansion.
         """
 
-        filter_sizes = [2**(6+i) for i in range(self.depth + 1)]   # [64, 128, 256, 512, 1024]
+        filter_sizes = [2**(2+i) for i in range(self.depth + 1)]   # [64, 128, 256, 512, 1024]
 
         inputs = Input(self.IMAGE_SHAPE)
         pool = inputs
@@ -69,7 +59,6 @@ class UNET():
 
         conv = Conv2D(filter_sizes[0], (3, 3), padding='same', activation= self.activation, kernel_initializer="he_normal")(conv)
         outputs = Conv2D(1, (1,1), padding= 'same', activation='sigmoid')(conv)
-
 
         self.model = Model(inputs, outputs)
 
@@ -144,6 +133,13 @@ class UNET():
         Takes in train and validation data.
         Also creates callbacks
         """
+
+        if self.args.load_best:
+            print('Loading Best Model')
+            self.model.load_weights('./models/best_model_F10.985.h5')
+            return
+
+        print('Starting Training')
         # Set path from command line args
         self.dir_ = self.args.job_dir + self.args.job_name
         filepath= self.dir_ + '/epoch{epoch:02d}_F1{val_f1:.2f}_' + datetime.now().strftime("%H.%M") + '.h5'
@@ -162,7 +158,7 @@ class UNET():
                                          mode='min', factor=0.9, min_delta=0.001, min_lr=0.00001)
 
         # Keeps a log of training
-        tensorboard = TensorBoard(self.dir_, histogram_freq=1, batch_size=batch_size, write_graph=True)
+        tensorboard = TensorBoard(self.dir_, histogram_freq=1, write_graph=True)
         callbacks_list = [checkpoint, reduceLR, earlystop, tensorboard]
 
         # Train model
@@ -179,5 +175,5 @@ class UNET():
         """
         Saves model to given filepath.
         """
-        filepath= self.weights_dir + '/FINISHED' + datetime.now().strftime("%d_%H.%M") + '.h5'
+        filepath= self.dir_ + '/FINISHED' + datetime.now().strftime("%d_%H.%M") + '.h5'
         self.model.save_weights(filepath)

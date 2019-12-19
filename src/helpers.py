@@ -1,5 +1,4 @@
 
-""" Contains all basic helperfunctions, e.g load_image()"""
 
 import os,sys
 import argparse
@@ -20,6 +19,17 @@ def get_args():
         type=str,
         default=''
     )
+    parser.add_argument(
+        '--load_best',
+        dest = 'load_best',
+        action= 'store_true'
+    )
+    parser.add_argument(
+        '--train',
+        dest = 'load_best',
+        action= 'store_false'
+    )
+    parser.set_defaults(load_best=True)
     args, _ = parser.parse_known_args()
     return args
 
