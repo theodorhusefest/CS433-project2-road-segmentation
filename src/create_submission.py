@@ -32,12 +32,12 @@ def create_submission(submission_name, model, padding_size = 14, patch_size = 10
     predictions[predictions <= 0.5] = 0
     
     # Scale back up
-    predictions = np.asarray([resize(predictions[i], (608, 608, 1)) for i in range(len(predictions))])
+    #predictions = np.asarray([resize(predictions[i], (608, 608, 1)) for i in range(len(predictions))])
     
     # Save predictions as imgs, and keep the names
-    image_names = save_test_img(predictions)
+    #image_names = save_test_img(predictions)
     
-    masks_to_submission(submission_name, image_names)
+    #masks_to_submission(submission_name, image_names)
     
     print('\nSuccesfully created submission.')
     
