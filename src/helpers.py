@@ -105,7 +105,7 @@ def get_args():
     parser.add_argument(
         '--job-name',
         type=str,
-        default=''
+        default='padded_filt_6_lay4_nobatchnorm'
     )
     args, _ = parser.parse_known_args()
     return args

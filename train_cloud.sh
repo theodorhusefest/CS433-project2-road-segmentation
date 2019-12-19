@@ -1,5 +1,5 @@
-export JOB_NAME="padded_200_filt_6_lay4_final"
-export GOOGLE_APPLICATION_CREDENTIALS="secret/CS433-59bd8aae4120.json"
+export JOB_NAME="padded_filt_6_lay4_nobatchnorm_new5"
+export GOOGLE_APPLICATION_CREDENTIALS="secret/CS433-830bac045a0f.json"
 export REGION="europe-west1"
 export BUCKET_NAME="cs433-ml"
 export JOB_DIR="gs://$BUCKET_NAME/keras-job-dir/"

@@ -9,7 +9,7 @@ from scipy import ndimage, misc
 import matplotlib.image as mpimg
 from skimage.transform import resize
 
-#from google.cloud import storage
+from google.cloud import storage
 from zipfile import ZipFile
 
 def load_all_imgs(num_images, padding_size, destination):
@@ -37,6 +37,11 @@ def load_all_imgs(num_images, padding_size, destination):
     
     return x_imgs, y_imgs
 
+
+def prepare_labels(y):
+    y[y >= 0.5] = 1
+    y[y < 0.5] = 0
+    return y.astype(int)
 
 def data_generator(patch_size, num_images = 100, train_test_ratio = 0.8, rotation_degs = [], download_from_cloud= False, padding_size = 28,
                    DATAPATH = "gs://cs433-ml/data/training.zip"):

@@ -29,7 +29,7 @@ class UNET():
         self.IMAGE_SIZE = image_shape[0]
         self.IMAGE_SHAPE = image_shape
         self.layers = layers
-        self.dropout_rate = 0
+        self.dropout_rate = 0.5
         self.model = None
         self.history = None
         self.lrelu = lambda x: LeakyReLU(alpha=0.01)(x)
@@ -81,7 +81,7 @@ class UNET():
         for i in range(self.layers-1 , -1, -1):
             print('Building expansion at layer: {} and filtersize: {}'.format(i+1, filter_sizes[i]))
 
-            conv = self.expand(conv, convs[i], filter_sizes[i], dropout= True)
+            conv = self.expand(conv, convs[i], filter_sizes[i], dropout= False)
 
         conv = Conv2D(filter_sizes[0], (3, 3), padding='same', activation= self.activation, kernel_initializer="he_normal")(conv)
         outputs = Conv2D(1, (1,1), padding= 'same', activation='sigmoid')(conv)
@@ -203,7 +203,7 @@ class UNET():
         """
         Saves model to given filepath.
         """
-        filepath= self.weights_dir + '/FINISHED' + datetime.now().strftime("%d_%H.%M") + '.h5'
+        filepath= self.dir_ + '/FINISHED' + datetime.now().strftime("%d_%H.%M") + '.h5'
         self.model.save_weights(filepath)
 
 
